@@ -1,0 +1,18 @@
+{
+  "name": "extract-footprints",
+  "version": "0.1.0",
+  "description": "",
+  "main": "app.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "byline": "^5.0.0",
+    "mgrs": "^1.0.0",
+    "mkdirp": "^0.5.1",
+    "polygon-centroid": "^1.1.0",
+    "underscore": "^1.9.1"
+  }
+}
