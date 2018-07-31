@@ -22,7 +22,7 @@ object CityGmlDataSource {
   /** The default/short format name, usage example: "df.write.format(CityGmlDataSource.SHORT_NAME)" */
   val SHORT_NAME: String = "CityGmlDataSource"
 
-  /** The root directory (presumably in a DFS) for Lucene data storage item. IRL would be based on tenantId/data version/etc */
+  /** The root directory (presumably in a DFS) for CityGML data storage item */
   val PATH : String = "path"
 
 }

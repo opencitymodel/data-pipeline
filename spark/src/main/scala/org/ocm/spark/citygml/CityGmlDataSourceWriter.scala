@@ -3,7 +3,6 @@ package org.ocm.spark.citygml
 import scala.collection.JavaConverters._
 
 import java.io.File
-import java.util.ArrayList
 
 import org.apache.spark.sql.Row
 import org.apache.spark.sql.sources.v2.writer.{DataSourceWriter, DataWriter, DataWriterFactory, WriterCommitMessage}
