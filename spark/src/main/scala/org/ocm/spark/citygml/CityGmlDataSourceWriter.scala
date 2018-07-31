@@ -54,7 +54,7 @@ private final class CityGmlDataWriter(path: String) extends DataWriter[Row] {
   override def write(row: Row): Unit = {
     cityModel.addCityObjectMember(
       new CityObjectMember(
-        createBuliding(row.getString(0), row.getSeq[Seq[Row]](1))
+        createBuilding(row.getString(0), row.getSeq[Seq[Row]](1))
       )
     )
   }
@@ -78,7 +78,7 @@ private final class CityGmlDataWriter(path: String) extends DataWriter[Row] {
   }
 
 
-  private def createBuliding(id: String, polygons: Seq[Seq[Row]]): Building = {
+  private def createBuilding(id: String, polygons: Seq[Seq[Row]]): Building = {
 
     val exterior = new SurfaceProperty(
       new CompositeSurface(
