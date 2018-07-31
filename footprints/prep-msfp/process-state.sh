@@ -35,4 +35,4 @@ mkdir -p ${OCM_GRIDFILES}
 OCM_GRIDFILES=${OCM_GRIDFILES} node ./grid-and-attrs/app.js ./${OCM_RAWFILES}/${OCM_MSFP_STATE}.txt
 
 # push the grid of files up to S3
-aws s3 cp ${OCM_GRIDFILES} s3://${OCM_S3BUCKET}/ --recursive
+aws s3 cp ${OCM_GRIDFILES} s3://${OCM_S3BUCKET}/${OCM_MSFP_VERSION}/ --recursive

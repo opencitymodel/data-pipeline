@@ -13,5 +13,11 @@ curl -O ${MSFP_DOWNLOAD_SITE}/${MSFP_VERSION}/${MSFP_STATE}.zip
 # Unzip
 unzip ${MSFP_STATE}.zip
 
+# Delete the original zip to save disk space
+rm -f ${MSFP_STATE}.zip
+
 # Parse out extra JSON so we have just a single polygon per line
 grep '{"type":"Feature","geometry":{"type":"Polygon"' ${MSFP_STATE}.geojson | awk '{$1=$1};1' | sed -n 's;\({.*}}\).*$;\1;p' > ${MSFP_STATE}.txt
+
+# Delete the geojson file to save disk space
+rm -f ${MSFP_STATE}.geojson
