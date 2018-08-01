@@ -94,6 +94,22 @@ object CityGmlDataSourceTestEnv {
     }
     rows
   }
+
+  def createLod0TestDataFrameRows(): util.List[Row] = {
+    val rows: util.List[Row] = Lists.newArrayListWithCapacity(ROW_NUMBER)
+
+    val polygons = Seq(
+      Seq(
+        (0d, 0d, 0d),
+        (20d, 0d, 0d),
+        (20d, 20d, 0d),
+        (0d, 20d, 0d)
+      )
+    )
+
+    rows.add(Row("building-id", polygons))
+    rows
+  }
 }
 
 object SparkCtxCfg {

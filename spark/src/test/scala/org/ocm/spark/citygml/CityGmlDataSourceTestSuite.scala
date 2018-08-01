@@ -4,8 +4,8 @@ import java.util
 
 import org.apache.spark.sql.types.StructType
 import org.apache.spark.sql.{Row, SaveMode, SparkSession}
-import org.ocm.spark.citygml.CityGmlDataSource.{PATH, SHORT_NAME}
-import CityGmlDataSourceTestEnv.{createTestDataFrameRows, defaultSchema, sparkSession}
+import org.ocm.spark.citygml.CityGmlDataSource.{LOD, PATH, SHORT_NAME}
+import CityGmlDataSourceTestEnv.{createTestDataFrameRows, createLod0TestDataFrameRows, defaultSchema, sparkSession}
 import org.scalatest.{Assertions, FlatSpec}
 import org.slf4j.{Logger, LoggerFactory}
 
@@ -15,6 +15,36 @@ final class CityGmlDataSourceTestSuite extends FlatSpec with Assertions {
 
     "A Row set written to CityGML" should "be read back with filters applied (and columns potentially re-ordered)" in {
       testWriteReadCycle()
+    }
+
+    "A CityGML LOD0 file" should "be written to disk" in {
+      testWriteLOD0()
+    }
+
+
+    private def testWriteLOD0(): Unit = {
+      val session: SparkSession = sparkSession("CityGmlDataSourceTestSuite")
+
+      try {
+        val path = "target/test-lod0/" + System.currentTimeMillis()
+        logger.info("Writing CityGML in directory: " + path)
+
+        val schema : StructType = defaultSchema
+        val rows: util.List[Row] = createLod0TestDataFrameRows()
+        val df = session.createDataFrame(rows, schema).repartition(CityGmlDataSourceTestEnv.PARTITION_NUMBER)
+
+        df.write.
+          format("org.ocm.spark.citygml.CityGmlDataSource"). //format(SHORT_NAME).
+          option(PATH, path).
+          option(LOD, 0).
+          mode(SaveMode.Overwrite).
+          save()
+
+        // TODO: verify the written file is what we expect
+
+      } finally {
+        session.stop
+      }
     }
 
     private def testWriteReadCycle(): Unit = {
@@ -41,6 +71,7 @@ final class CityGmlDataSourceTestSuite extends FlatSpec with Assertions {
       df.write.
         format("org.ocm.spark.citygml.CityGmlDataSource"). //format(SHORT_NAME).
         option(PATH, path).
+        option(LOD, 1).
         mode(SaveMode.Overwrite).
         save()
     }
