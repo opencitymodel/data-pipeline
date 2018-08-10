@@ -17,9 +17,9 @@ final class CityGmlDataSourceTestSuite extends FlatSpec with Assertions {
       testWriteReadCycle()
     }
 
-    "A CityGML LOD0 file" should "be written to disk" in {
-      testWriteLOD0()
-    }
+    // "A CityGML LOD0 file" should "be written to disk" in {
+    //   testWriteLOD0()
+    // }
 
 
     private def testWriteLOD0(): Unit = {
@@ -29,7 +29,7 @@ final class CityGmlDataSourceTestSuite extends FlatSpec with Assertions {
         val path = "target/test-lod0/" + System.currentTimeMillis()
         logger.info("Writing CityGML in directory: " + path)
 
-        val schema : StructType = defaultSchema
+        val schema : StructType = StructType(defaultSchema)
         val rows: util.List[Row] = createLod0TestDataFrameRows()
         val df = session.createDataFrame(rows, schema).repartition(CityGmlDataSourceTestEnv.PARTITION_NUMBER)
 
@@ -51,7 +51,7 @@ final class CityGmlDataSourceTestSuite extends FlatSpec with Assertions {
       val session: SparkSession = sparkSession("CityGmlDataSourceTestSuite")
 
       try {
-        val path = "target/test" + System.currentTimeMillis()
+        val path = "target/test-lod1/" + System.currentTimeMillis()
         writeToDataSource(session, path)
         //readFromDataSource(session, path)
       } finally {
@@ -60,7 +60,7 @@ final class CityGmlDataSourceTestSuite extends FlatSpec with Assertions {
     }
 
     private def writeToDataSource(session: SparkSession, path : String): Unit = {
-      val schema : StructType = defaultSchema
+      val schema : StructType = StructType(defaultSchema)
       val now: Long = System.currentTimeMillis
       val rows: util.List[Row] = createTestDataFrameRows(now)
 

@@ -26,16 +26,17 @@ object CityGmlDataSourceTestEnv {
       getOrCreate()
   }
 
-  def defaultSchema = StructType(
-    StructField("id", DataTypes.StringType, false) ::
+  def defaultSchema = List(
+    StructField("id", DataTypes.StringType, false),
     StructField("polygons", DataTypes.createArrayType(
       DataTypes.createArrayType(
         DataTypes.createStructType(
           Array(StructField("x", DoubleType, false)
           , StructField("y", DoubleType, false)
           , StructField("z", DoubleType, false))
-        ),false), false)) ::
-      Nil)
+        ),false), false)),
+    StructField("custom", DataTypes.StringType, false)
+  )
 
 //  def extrude(polygon:Array[Array[Double]], height: Double): Seq[Array[Array[Double]]] = {
 //    Seq(
@@ -88,7 +89,7 @@ object CityGmlDataSourceTestEnv {
             (20d * i, 0d, 10d)
           )
         )
-        rows.add(Row(i.toString, polygons))
+        rows.add(Row(i.toString, polygons, "abc"))
         i += 1
       }
     }
