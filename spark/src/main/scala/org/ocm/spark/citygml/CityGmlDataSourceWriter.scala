@@ -25,6 +25,7 @@ import org.citygml4j.model.gml.geometry.primitives.Solid
 import org.citygml4j.model.gml.geometry.primitives.SolidProperty
 import org.citygml4j.model.gml.geometry.primitives.SurfaceProperty
 import org.citygml4j.model.module.citygml.CityGMLVersion
+import org.citygml4j.util.bbox.BoundingBoxOptions
 import org.citygml4j.util.gmlid.GMLIdManager
 import org.citygml4j.util.gmlid.DefaultGMLIdManager
 import org.citygml4j.xml.io.CityGMLOutputFactory
@@ -48,14 +49,16 @@ private final class CityGmlDataSourceWriter(lod: Int, path: String) extends Data
 
 private final class CityGmlDataWriterFactory(lod: Int, path: String) extends DataWriterFactory[Row] {
   override def createDataWriter(partitionId: Int, attemptNumber: Int): DataWriter[Row] = {
-    new CityGmlDataWriter(lod, filePath(path, partitionId))
+    new CityGmlDataWriter(lod, path, fileName(partitionId))
   }
 
-  private def filePath(root: String, index: Int): String = root + "/" + "%05d".format(index) + ".gml"
+  private def fileName(partitionId: Int): String = "%05d".format(partitionId)
 }
 
 
-private final class CityGmlDataWriter(lod: Int, path: String) extends DataWriter[Row] {
+private final class CityGmlDataWriter(lod: Int, path: String, filename: String) extends DataWriter[Row] {
+
+  var grid:String = null
 
   val ctx:CityGMLContext = CityGMLContext.getInstance()
 
@@ -79,13 +82,17 @@ private final class CityGmlDataWriter(lod: Int, path: String) extends DataWriter
       createBuildingLOD1(building, row.getSeq[Seq[Row]](polygonsIdx))
     }
 
-    // TODO: track bounding area in a reducer like fashion so we can add that to the gml
-
     // add custom attributes (any column of StringType that is not one of our required columns)
     val extraAttrs = row.schema.
                       filter((f:StructField) => f.name != "id" && f.name != "footprint" && f.name != "polygons" && f.dataType == StringType).
                       map((f:StructField) => new StringAttribute(f.name, row.getString(row.fieldIndex(f.name))))
     for (attr <- extraAttrs) building.addGenericAttribute(attr)
+
+    // attempt to identify our grid from the row data (if available)
+    // TODO: we can make this configurable by accepting a "FILENAME_COL" option
+    if (grid == null && row.schema.filter((f:StructField) => f.name == "grid").length > 0) {
+      grid = row.getString(row.fieldIndex("grid"));
+    }
 
     // add the building to the city
     cityModel.addCityObjectMember(new CityObjectMember(building));
@@ -94,10 +101,17 @@ private final class CityGmlDataWriter(lod: Int, path: String) extends DataWriter
   /** Called once after all rows have been written */
   override def commit(): WriterCommitMessage = {
     if (cityModel.isSetCityObjectMember) {
+      // NOTE: if we have a "grid" column we use that as the filename, thus it's expected that we
+      //       have partitioned the data by this column!!
+      val finalPath = if(grid != null) path + "/" + grid + ".gml" else path + "/" + filename + ".gml";
+
       val builder:CityGMLBuilder = ctx.createCityGMLBuilder(getClass().getClassLoader())
       val out:CityGMLOutputFactory = builder.createCityGMLOutputFactory(CityGMLVersion.DEFAULT)
-      val writer:CityGMLWriter = out.createCityGMLWriter(new File(path), "UTF-8")
+      val writer:CityGMLWriter = out.createCityGMLWriter(new File(finalPath), "UTF-8")
+
       // TODO: add 'boundedBy'
+      cityModel.setBoundedBy(cityModel.calcBoundedBy(BoundingBoxOptions.defaults()))
+
       writer.setPrefixes(CityGMLVersion.DEFAULT)
       writer.setSchemaLocations(CityGMLVersion.DEFAULT)
       writer.setIndentString("  ")

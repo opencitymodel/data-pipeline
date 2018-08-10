@@ -35,7 +35,7 @@ object CityGmlDataSourceTestEnv {
           , StructField("y", DoubleType, false)
           , StructField("z", DoubleType, false))
         ),false), false)),
-    StructField("custom", DataTypes.StringType, false)
+    StructField("grid", DataTypes.StringType, false)
   )
 
 //  def extrude(polygon:Array[Array[Double]], height: Double): Seq[Array[Array[Double]]] = {
