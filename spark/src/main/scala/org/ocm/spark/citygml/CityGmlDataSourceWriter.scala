@@ -18,6 +18,7 @@ import org.citygml4j.model.citygml.building.Building
 import org.citygml4j.model.citygml.core.CityModel
 import org.citygml4j.model.citygml.core.CityObjectMember
 import org.citygml4j.model.citygml.generics.StringAttribute
+import org.citygml4j.model.gml.feature.BoundingShape
 import org.citygml4j.model.gml.geometry.aggregates.MultiSurface
 import org.citygml4j.model.gml.geometry.aggregates.MultiSurfaceProperty
 import org.citygml4j.model.gml.geometry.complexes.CompositeSurface
@@ -109,8 +110,10 @@ private final class CityGmlDataWriter(lod: Int, path: String, filename: String) 
       val out:CityGMLOutputFactory = builder.createCityGMLOutputFactory(CityGMLVersion.DEFAULT)
       val writer:CityGMLWriter = out.createCityGMLWriter(new File(finalPath), "UTF-8")
 
-      // TODO: add 'boundedBy'
-      cityModel.setBoundedBy(cityModel.calcBoundedBy(BoundingBoxOptions.defaults()))
+      // add 'boundedBy' element along with coordinate system
+      val bbox:BoundingShape = cityModel.calcBoundedBy(BoundingBoxOptions.defaults())
+      bbox.getEnvelope.setSrsName("EPSG:4326")
+      cityModel.setBoundedBy(bbox)
 
       writer.setPrefixes(CityGMLVersion.DEFAULT)
       writer.setSchemaLocations(CityGMLVersion.DEFAULT)
