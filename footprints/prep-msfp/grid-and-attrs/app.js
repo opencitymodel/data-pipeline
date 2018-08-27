@@ -1,8 +1,9 @@
 byline = require('byline');
 fs = require('fs');
+geolib = require('geolib');
 mkdirp = require('mkdirp');
 mgrs = require('mgrs');
-centroid = require('polygon-centroid');
+OpenLocationCode = require('open-location-code').OpenLocationCode;
 _ = require('underscore');
 
 
@@ -66,6 +67,43 @@ function quickHash(str) {
     return quickHashVal;
 }
 
+// adapted from the encode() function here https://github.com/pnnl/buildingid/blob/master/buildingid/v3.py#L90
+function ubid(center, northeast, southwest) {
+    const openloc = new OpenLocationCode();
+
+    // Encode the OLCs for the northeast and southwest corners of the minimal
+    // bounding box for the building footprint.
+    const northeast_openlocationcode = openloc.encode(northeast.latitude, northeast.longitude)
+    const southwest_openlocationcode = openloc.encode(southwest.latitude, southwest.longitude)
+
+    // Encode the OLC for the centroid of the building footprint.
+    const centroid_openlocationcode = openloc.encode(center.lat, center.lon)
+
+    // Decode the OLCs for the northeast and southwest corners of the minimal
+    // bounding box for the building footprint.
+    const northeast_openlocationcode_CodeArea = openloc.decode(northeast_openlocationcode)
+    const southwest_openlocationcode_CodeArea = openloc.decode(southwest_openlocationcode)
+
+    // Decode the OLC for the centroid of the building footprint.
+    const centroid_openlocationcode_CodeArea = openloc.decode(centroid_openlocationcode)
+
+    // Calculate the size of the OLC for the centroid of the building footprint
+    // in decimal degree units.
+    const height = centroid_openlocationcode_CodeArea.latitudeHi - centroid_openlocationcode_CodeArea.latitudeLo
+    const width = centroid_openlocationcode_CodeArea.longitudeHi - centroid_openlocationcode_CodeArea.longitudeLo
+
+    // Calculate the Chebyshev distances to the northern, eastern, southern and
+    // western of the OLC bounding box for the building footprint.
+    const delta_north = Math.round((northeast_openlocationcode_CodeArea.latitudeHi - centroid_openlocationcode_CodeArea.latitudeHi) / height)
+    const delta_east = Math.round((northeast_openlocationcode_CodeArea.longitudeHi - centroid_openlocationcode_CodeArea.longitudeHi) / width)
+    const delta_south = Math.round((centroid_openlocationcode_CodeArea.latitudeLo - southwest_openlocationcode_CodeArea.latitudeLo) / height)
+    const delta_west = Math.round((centroid_openlocationcode_CodeArea.longitudeLo - southwest_openlocationcode_CodeArea.longitudeLo) / width)
+
+    // Construct and return the UBID code.
+    return centroid_openlocationcode+"-"+delta_north+"-"+delta_east+"-"+delta_south+"-"+delta_west;
+}
+
+
 // open up our input file and start reading line by line
 const stream = byline(fs.createReadStream(INPUT_FILE, { encoding: "utf-8"}));
 
@@ -79,18 +117,31 @@ stream.on("data", function(line) {
     const signature = quickHash(hashStr);
 
     // calculate centroid
-    const center = centroid(footprint.geometry.coordinates[0].map(function (point) {
-        return { x: point[0], y: point[1] }
+    const ctr = geolib.getCenter(footprint.geometry.coordinates[0].map(p => {
+        return { longitude: p[0], latitude: p[1] }
+    }));
+    // not sure why, but the centroid funtion is returning values as strings =()
+    const center = { lat: parseFloat(ctr.latitude), lon: parseFloat(ctr.longitude) }
+
+    // calculate bounding box
+    const bbox = geolib.getBounds(footprint.geometry.coordinates[0].map(p => {
+        return { longitude: p[0], latitude: p[1] }
     }));
 
     // TODO: calculate area
 
     // calculate MGRS grid @ 1km resolution
-    const mgrsGrid = mgrs.forward([center.x, center.y], 2);
+    const mgrsGrid = mgrs.forward([center.lon, center.lat], 2);
+
+    // calculate UBID for the footprint
+    const bbox_ne = { latitude: bbox.maxLat, longitude: bbox.maxLng }
+    const bbox_sw = { latitude: bbox.minLat, longitude: bbox.minLng }
+    const ubid = ubid(center, bbox_ne, bbox_sw);
 
     // add the footprint to output file
     writeFootprint(mgrsGrid, {
         sig: signature,
+        ubid,
         msfp_st: FP_STATE,
         mgrs: mgrsGrid,
         ctr: center,

@@ -10,8 +10,10 @@
   "license": "ISC",
   "dependencies": {
     "byline": "^5.0.0",
+    "geolib": "^2.0.24",
     "mgrs": "^1.0.0",
     "mkdirp": "^0.5.1",
+    "open-location-code": "^1.0.3",
     "polygon-centroid": "^1.1.0",
     "underscore": "^1.9.1"
   }
