@@ -7,7 +7,7 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="aa7a6142-4585-4bfd-bf52-b0fb0807c1b6" name="Default Changelist" comment="">
-      <change beforePath="$PROJECT_DIR$/lod0-citygml/.gitignore" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Dockerfile" beforeDir="false" afterPath="$PROJECT_DIR$/Dockerfile" afterDir="false" />
     </list>
     <ignored path="$PROJECT_DIR$/out/" />
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
@@ -63,7 +63,7 @@
         <entry file="file://$PROJECT_DIR$/src/org/opencitymodel/citygml/Main.java">
           <provider selected="true" editor-type-id="text-editor">
             <state relative-caret-position="228">
-              <caret line="21" selection-start-line="21" selection-end-line="21" />
+              <caret line="21" lean-forward="true" selection-start-line="21" selection-end-line="21" />
               <folding>
                 <element signature="imports" expanded="true" />
               </folding>
@@ -136,7 +136,7 @@
       <select />
     </treeState>
   </component>
-  <component name="ProjectFrameBounds">
+  <component name="ProjectFrameBounds" extendedState="1">
     <option name="x" value="230" />
     <option name="y" value="-1148" />
     <option name="width" value="1400" />
@@ -308,7 +308,7 @@
       <option name="number" value="Default" />
       <option name="presentableId" value="Default" />
       <updated>1535755044258</updated>
-      <workItem from="1535755046880" duration="20766000" />
+      <workItem from="1535755046880" duration="21208000" />
     </task>
     <servers />
   </component>
@@ -345,10 +345,11 @@
     </history-entry>
   </component>
   <component name="TimeTrackingManager">
-    <option name="totallyTimeSpent" value="20766000" />
+    <option name="totallyTimeSpent" value="21208000" />
   </component>
   <component name="ToolWindowManager">
-    <frame x="230" y="-1148" width="1400" height="988" extended-state="0" />
+    <frame x="230" y="-1148" width="1400" height="988" extended-state="1" />
+    <editor active="true" />
     <layout>
       <window_info id="Designer" />
       <window_info id="Favorites" side_tool="true" />
@@ -512,7 +513,7 @@
     <entry file="file://$PROJECT_DIR$/src/org/opencitymodel/citygml/Main.java">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="228">
-          <caret line="21" selection-start-line="21" selection-end-line="21" />
+          <caret line="21" lean-forward="true" selection-start-line="21" selection-end-line="21" />
           <folding>
             <element signature="imports" expanded="true" />
           </folding>
