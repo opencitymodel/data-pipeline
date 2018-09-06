@@ -14,4 +14,4 @@ JOB_PROPS="{\"environment\":[{\"name\":\"OCM_STATE\",\"value\":\"${STATE}\"}]}"
 
 # TODO: we could potentially try to lookup the latest revision for the job def, or ask the user for it?
 
-aws batch submit-job --job-name $JOB_NAME --job-definition $JOB_DEF --job-queue $JOB_QUEUE --container-overrides $JOB_PROPS
+aws batch submit-job --job-name $JOB_NAME --job-definition $JOB_DEF --job-queue $QUEUE --container-overrides $JOB_PROPS
