@@ -14,21 +14,21 @@ stateCodes = require('./state-codes')
 // we must have a file for us to process
 if (process.argv.length < 3) {
     console.log("error: no county shapefile specified");
-    console.log("usage: node app.js <county-shapefile> <state-shapefile> <msfp-state>");
+    console.log("usage: node app.js <state-shapefile> <county-shapefile> <msfp-state>");
     return;
 }
 
 // we must have a file for us to process
 if (process.argv.length < 4) {
     console.log("error: no state shapefile specified");
-    console.log("usage: node app.js <county-shapefile> <state-shapefile> <msfp-state>");
+    console.log("usage: node app.js <state-shapefile> <county-shapefile> <msfp-state>");
     return;
 }
 
 // we must have a file for us to process
 if (process.argv.length < 5) {
     console.log("error: no state specified to process");
-    console.log("usage: node app.js <county-shapefile> <state-shapefile> <msfp-state>");
+    console.log("usage: node app.js <state-shapefile> <county-shapefile> <msfp-state>");
     return;
 }
 
@@ -83,8 +83,12 @@ function loadStates(counties) {
         stateDefs.features.forEach(stateDef => {
             const msfpStateName = stateDef.properties.NAME.replace(/ /g, "");
             stateDef.msfp = msfpStateName;
+            // console.log(stateDef.msfp, stateDef.geometry.type, stateDef.geometry.coordinates.length);
 
             if (msfpStateName === STATE) {
+                // counties.forEach(countyDef => {
+                //     console.log("county - "+countyDef.properties.NAME, countyDef.geometry.type, countyDef.geometry.coordinates.length)
+                // })
                 processState(stateDef, counties);
             }
         })
@@ -151,14 +155,14 @@ function addGrid(grids, grid, stateDef, countyDefs, minLon, minLat) {
         grids[grid] = gridDef;
 
         // if this grid is within our designated state then try to map which counties it overlaps
-        if (isGridInShape(grid, stateDef.geometry.coordinates[0])) {
+        if (isGridInShape(grid, stateDef)) {
             gridDef.mgrs = grid;
             gridDef.counties = [];
 
             // iterate over our counties and determine which ones overlap this grid
             for(let idx = 0; idx < countyDefs.length; idx++) {
                 const county = countyDefs[idx];
-                if (isGridInShape(grid, county.geometry.coordinates[0])) {
+                if (isGridInShape(grid, county)) {
                     gridDef.counties.push(county.properties.GEOID);
                 }
             }
@@ -183,6 +187,8 @@ function addGrid(grids, grid, stateDef, countyDefs, minLon, minLat) {
 }
 
 function isGridInShape(grid, shape) {
+    const polygons = shape.geometry.coordinates;
+
     const pt = mgrs.inverse(grid);
     const maxLon = pt[0];
     const minLat = pt[1];
@@ -190,6 +196,10 @@ function isGridInShape(grid, shape) {
     const maxLat = pt[3];
 
     // check if any of the 4 corners of the grid are within the shape
+    // Hmmm.  It seems possible that we could miss counties because the shape of a county could enter and leave
+    //        a grid on one of its edges without ever overlapping one of the corners.  May be better to change
+    //        this to do a line intersection check instead of a point in polygon check, that way we effectively
+    //        test all points along each edge of the grid.
     let result = false;
     let idx = 0;
     const points = [
@@ -199,12 +209,18 @@ function isGridInShape(grid, shape) {
         [minLon, minLat]
     ];
 
-    // Hmmm.  It seems possible that we could miss counties because the shape of a county could enter and leave
-    //        a grid on one of its edges without ever overlapping one of the corners.  May be better to change
-    //        this to do a line intersection check instead of a point in polygon check, that way we effectively
-    //        test all points along each edge of the grid.
     while( result === false && idx < points.length) {
-        result = pointInPolygon(points[idx], shape);
+        if( polygons.length === 1 ) {
+            result = pointInPolygon(points[idx], polygons[0]);
+        } else {
+            // some shapes have multiple polygons, so we need to test them all
+            // NOTE: in geojson a MultiPolygon has each member of its coordinates structured like a Polygon
+            for( let k=0; k < polygons.length && result === false; k++ ) {
+                const polygon = shape.geometry.type === "MultiPolygon" ? polygons[k][0] : polygons[k];
+                result = pointInPolygon(points[idx], polygon);
+            }
+        }
+
         idx++;
     }
 
