@@ -1,0 +1,6 @@
+# spark stuff
+metastore_db
+
+# scala / sbt stuff
+project
+target
