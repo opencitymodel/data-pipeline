@@ -1,0 +1,17 @@
+<component name="libraryTable">
+  <library name="org.citygml4j:citygml4j:2.7.0" type="repository">
+    <properties maven-id="org.citygml4j:citygml4j:2.7.0" />
+    <CLASSES>
+      <root url="jar://$MAVEN_REPOSITORY$/org/citygml4j/citygml4j/2.7.0/citygml4j-2.7.0.jar!/" />
+      <root url="jar://$MAVEN_REPOSITORY$/javax/xml/bind/jaxb-api/2.3.0/jaxb-api-2.3.0.jar!/" />
+      <root url="jar://$MAVEN_REPOSITORY$/com/sun/xml/bind/jaxb-core/2.3.0/jaxb-core-2.3.0.jar!/" />
+      <root url="jar://$MAVEN_REPOSITORY$/com/sun/xml/bind/jaxb-impl/2.3.0/jaxb-impl-2.3.0.jar!/" />
+      <root url="jar://$MAVEN_REPOSITORY$/javax/activation/activation/1.1.1/activation-1.1.1.jar!/" />
+      <root url="jar://$MAVEN_REPOSITORY$/com/sun/xsom/xsom/20140925/xsom-20140925.jar!/" />
+      <root url="jar://$MAVEN_REPOSITORY$/relaxngDatatype/relaxngDatatype/20020414/relaxngDatatype-20020414.jar!/" />
+      <root url="jar://$MAVEN_REPOSITORY$/com/google/code/gson/gson/2.8.2/gson-2.8.2.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES />
+  </library>
+</component>

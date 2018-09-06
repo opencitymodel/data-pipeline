@@ -1,0 +1,16 @@
+<component name="ArtifactManager">
+  <artifact type="jar" name="citygml">
+    <output-path>$PROJECT_DIR$/out/artifacts/citygml</output-path>
+    <root id="archive" name="citygml.jar">
+      <element id="module-output" name="citygml" />
+      <element id="extracted-dir" path="$MAVEN_REPOSITORY$/org/citygml4j/citygml4j/2.7.0/citygml4j-2.7.0.jar" path-in-jar="/" />
+      <element id="extracted-dir" path="$MAVEN_REPOSITORY$/javax/xml/bind/jaxb-api/2.3.0/jaxb-api-2.3.0.jar" path-in-jar="/" />
+      <element id="extracted-dir" path="$MAVEN_REPOSITORY$/com/sun/xml/bind/jaxb-core/2.3.0/jaxb-core-2.3.0.jar" path-in-jar="/" />
+      <element id="extracted-dir" path="$MAVEN_REPOSITORY$/com/sun/xml/bind/jaxb-impl/2.3.0/jaxb-impl-2.3.0.jar" path-in-jar="/" />
+      <element id="extracted-dir" path="$MAVEN_REPOSITORY$/javax/activation/activation/1.1.1/activation-1.1.1.jar" path-in-jar="/" />
+      <element id="extracted-dir" path="$MAVEN_REPOSITORY$/com/sun/xsom/xsom/20140925/xsom-20140925.jar" path-in-jar="/" />
+      <element id="extracted-dir" path="$MAVEN_REPOSITORY$/relaxngDatatype/relaxngDatatype/20020414/relaxngDatatype-20020414.jar" path-in-jar="/" />
+      <element id="extracted-dir" path="$MAVEN_REPOSITORY$/com/google/code/gson/gson/2.8.2/gson-2.8.2.jar" path-in-jar="/" />
+    </root>
+  </artifact>
+</component>
