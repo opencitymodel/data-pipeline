@@ -1,2 +1,5 @@
 # compiled files
 out
+
+# intellij files
+.idea
