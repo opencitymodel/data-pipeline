@@ -83,12 +83,8 @@ function loadStates(counties) {
         stateDefs.features.forEach(stateDef => {
             const msfpStateName = stateDef.properties.NAME.replace(/ /g, "");
             stateDef.msfp = msfpStateName;
-            // console.log(stateDef.msfp, stateDef.geometry.type, stateDef.geometry.coordinates.length);
 
             if (msfpStateName === STATE) {
-                // counties.forEach(countyDef => {
-                //     console.log("county - "+countyDef.properties.NAME, countyDef.geometry.type, countyDef.geometry.coordinates.length)
-                // })
                 processState(stateDef, counties);
             }
         })
@@ -101,9 +97,7 @@ function processState(stateDef, counties) {
     console.log("Starting "+STATE+" @", started);
 
     // make a bbox of the state
-    const bbox = geolib.getBounds(stateDef.geometry.coordinates[0].map(p => {
-        return { longitude: p[0], latitude: p[1] }
-    }));
+    const bbox = geolib.getBounds(getCoords(stateDef));
     console.log("bbox", "("+bbox.minLng+","+bbox.minLat+","+bbox.maxLng+","+bbox.maxLat+")");
 
     // move grid by grid across the bounding box to build our dataset
@@ -185,6 +179,24 @@ function addGrid(grids, grid, stateDef, countyDefs, minLon, minLat) {
         return addGrid(moreGrids, gridSouth, stateDef, countyDefs, minLon, minLat);
     }
 }
+
+
+function getCoords(stateDef) {
+    if (stateDef.geometry.coordinates.length === 1) {
+        return stateDef.geometry.coordinates[0].map(p => {
+            return { longitude: p[0], latitude: p[1] }
+        });
+
+    } else {
+        return _.flatten(stateDef.geometry.coordinates.map(polygon => {
+            if(stateDef.geometry.type === "MultiPolygon") polygon = polygon[0];
+            return polygon.map(p => {
+                return { longitude: p[0], latitude: p[1] }
+            });
+        }));
+    }
+}
+
 
 function isGridInShape(grid, shape) {
     const polygons = shape.geometry.coordinates;
