@@ -22,10 +22,9 @@ import org.citygml4j.model.gml.geometry.primitives.SolidProperty;
 import org.citygml4j.model.gml.geometry.primitives.SurfaceProperty;
 import org.citygml4j.model.module.citygml.CityGMLVersion;
 import org.citygml4j.util.bbox.BoundingBoxOptions;
-import org.citygml4j.util.gmlid.GMLIdManager;
-import org.citygml4j.util.gmlid.DefaultGMLIdManager;
 import org.citygml4j.xml.io.CityGMLOutputFactory;
 import org.citygml4j.xml.io.writer.CityGMLWriter;
+import org.cts.op.CoordinateOperation;
 
 
 public final class CitygmlBuilder {
@@ -33,10 +32,16 @@ public final class CitygmlBuilder {
     public static final int LOD0 = 0;
     public static final int LOD1 = 1;
 
-//    val gmlIdManager:GMLIdManager = DefaultGMLIdManager.getInstance()
-
+    // The CityGML LOD to target
     private final int LOD;
 
+    // We use this to do the coordinate system transformation before writing out the final Citygml
+    private final String sourceCrs = "EPSG:4326";
+    private final String targetCrs = "EPSG:3857";
+    private final CoordinateOperation crsTransform = GeoUtil.getTransform(sourceCrs, targetCrs);
+
+
+    // The buildings we've collected for inclusion in our file
     private final List<BuildingDef> buildings = new ArrayList<>();
 
     private final GMLGeometryFactory geom = new GMLGeometryFactory();
@@ -83,7 +88,7 @@ public final class CitygmlBuilder {
 
             // add 'boundedBy' element along with coordinate system
             BoundingShape bbox = cityModel.calcBoundedBy(BoundingBoxOptions.defaults());
-            bbox.getEnvelope().setSrsName("EPSG:4326");
+            bbox.getEnvelope().setSrsName(this.targetCrs);
             cityModel.setBoundedBy(bbox);
 
             writer.setPrefixes(CityGMLVersion.DEFAULT);
@@ -102,14 +107,21 @@ public final class CitygmlBuilder {
         Building building = new Building();
         building.setId(bldg.getId());
 
+        // convert the coordinates of the footprint into our desired CRS
+        GeoJSON fp = bldg.getFp();
+        double[][] transformedCoords = transformCoordinates(fp.getGeometry().getCoordinates()[0]);
+        fp.getGeometry().getCoordinates()[0] = transformedCoords;
+
         // construct the building surface (depends on LOD)
         if (this.LOD == LOD0) {
-            MultiSurfaceProperty surface = createLOD0Footprint(bldg.getFp());
+            MultiSurfaceProperty surface = createLOD0Footprint(fp);
             building.setLod0FootPrint(surface);
         } else {
             // default is LOD1
-            SolidProperty solid = createLOD1Solid(bldg.getFp(), bldg.getHeight());
+            SolidProperty solid = createLOD1Solid(fp, bldg.getHeight());
             building.setLod1Solid(solid);
+//            MultiSurfaceProperty surface = createLOD1Building(fp, bldg.getHeight());
+//            building.setLod1MultiSurface(surface);
         }
 
         // add custom attributes
@@ -121,6 +133,22 @@ public final class CitygmlBuilder {
         building.addGenericAttribute(new StringAttribute("grid", bldg.getGrid()));
 
         return building;
+    }
+
+
+    private double[][] transformCoordinates(double[][] coords) {
+        try {
+            double[][] newCoords = new double[coords.length][];
+            for (int i=0; i < coords.length; i++) {
+                double[] coord = {coords[i][0], coords[i][1]};
+                newCoords[i] = crsTransform.transform(coord);
+            }
+
+            return newCoords;
+
+        } catch(Exception ex) {
+            return coords;
+        }
     }
 
 
@@ -142,13 +170,34 @@ public final class CitygmlBuilder {
 
 
     /** Create an LOD1 building solid **/
+//    private MultiSurfaceProperty createLOD1Building(GeoJSON fp, double height) {
+//        // extrude our footprint into a list of polygons making a 3D shape
+//        List<Polygon> surfaces = extrudeBuilding(fp, height);
+//
+//        List<SurfaceProperty> surfaceMembers = new ArrayList<>();
+//        for (Polygon surface : surfaces) {
+//            surfaceMembers.add(new SurfaceProperty(surface));
+//        }
+//
+//        MultiSurface multiSurface = new MultiSurface();
+//        multiSurface.setSurfaceMember(surfaceMembers);
+//
+//        return new MultiSurfaceProperty(multiSurface);
+//    }
+
     private SolidProperty createLOD1Solid(GeoJSON fp, double height) {
         // extrude our footprint into a list of polygons making a 3D shape
         List<Polygon> surfaces = extrudeBuilding(fp, height);
 
+        List<SurfaceProperty> surfaceMembers = new ArrayList<>();
+        for (Polygon surface : surfaces) {
+            surfaceMembers.add(new SurfaceProperty(surface));
+        }
+
+        CompositeSurface compositeSurface = new CompositeSurface();
+        compositeSurface.setSurfaceMember(surfaceMembers);
         Solid solid = new Solid();
-        SurfaceProperty exterior = new SurfaceProperty(new CompositeSurface(surfaces));
-        solid.setExterior(exterior);
+        solid.setExterior(new SurfaceProperty(compositeSurface));
 
         return new SolidProperty(solid);
     }
