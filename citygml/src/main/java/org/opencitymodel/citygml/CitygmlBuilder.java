@@ -20,6 +20,7 @@ import org.citygml4j.model.gml.geometry.primitives.Polygon;
 import org.citygml4j.model.gml.geometry.primitives.Solid;
 import org.citygml4j.model.gml.geometry.primitives.SolidProperty;
 import org.citygml4j.model.gml.geometry.primitives.SurfaceProperty;
+import org.citygml4j.model.gml.measures.Length;
 import org.citygml4j.model.module.citygml.CityGMLVersion;
 import org.citygml4j.util.bbox.BoundingBoxOptions;
 import org.citygml4j.xml.io.CityGMLOutputFactory;
@@ -123,6 +124,9 @@ public final class CitygmlBuilder {
 //            MultiSurfaceProperty surface = createLOD1Building(fp, bldg.getHeight());
 //            building.setLod1MultiSurface(surface);
         }
+
+        // set the height
+        building.setMeasuredHeight(new Length(bldg.getHeight()));
 
         // add custom attributes
         building.addGenericAttribute(new StringAttribute("ubid", bldg.getUbid()));
