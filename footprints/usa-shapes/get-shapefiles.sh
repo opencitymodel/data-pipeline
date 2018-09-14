@@ -24,6 +24,7 @@ unzip tl_${YEAR}_us_state.zip
 unzip tl_${YEAR}_us_county.zip
 
 # convert ESRI shapefiles to GeoJSON
+# NOTE: this requires that 'gdal' is installed and available
 ogr2ogr -f "GeoJSON" state.geo.json tl_${YEAR}_us_state.shp tl_${YEAR}_us_state
 ogr2ogr -f "GeoJSON" county.geo.json tl_${YEAR}_us_county.shp tl_${YEAR}_us_county
 
