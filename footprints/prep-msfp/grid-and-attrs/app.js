@@ -6,6 +6,8 @@ mgrs = require('mgrs');
 OpenLocationCode = require('open-location-code').OpenLocationCode;
 pointInPolygon = require('point-in-polygon');
 readline = require('readline');
+turf_area = require('@turf/area')
+turf_helpers = require('@turf/helpers')
 _ = require('underscore');
 
 stateCodes = require('./state-codes')
@@ -199,7 +201,9 @@ function processFootprints(countyShapes, mgrsToCountyMapping) {
             return { longitude: p[0], latitude: p[1] }
         }));
 
-        // TODO: calculate area
+        // calculate area
+        const turfPoly = turf_helpers.polygon(footprint.geometry.coordinates);
+        const area = turf_area.default(turfPoly);
 
         // calculate MGRS grid @ 1km resolution
         const mgrsGrid = mgrs.forward([center.lon, center.lat], 2);
@@ -252,6 +256,7 @@ function processFootprints(countyShapes, mgrsToCountyMapping) {
             lat: center.lat,
             lon: center.lon,
             mgrs: mgrsGrid,
+            area,
             fp: footprint
         });
     });
