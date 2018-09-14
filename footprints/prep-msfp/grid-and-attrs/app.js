@@ -247,10 +247,11 @@ function processFootprints(countyShapes, mgrsToCountyMapping) {
         writeFootprint(mgrsGrid, {
             sig: signature,
             ubid: bid,
-            msfp_st: STATE,
-            mgrs: mgrsGrid,
-            ctr: center,
+            state: STATE,
             county: countyId,
+            lat: center.lat,
+            lon: center.lon,
+            mgrs: mgrsGrid,
             fp: footprint
         });
     });
