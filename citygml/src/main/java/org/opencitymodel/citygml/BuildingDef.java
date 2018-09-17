@@ -36,14 +36,6 @@ public class BuildingDef {
         this.county = county;
     }
 
-    public String getCenter() {
-        return center;
-    }
-
-    public void setCenter(String center) {
-        this.center = center;
-    }
-
     public String getMgrs() {
         return mgrs;
     }
@@ -58,6 +50,30 @@ public class BuildingDef {
 
     public void setGrid(String grid) {
         this.grid = grid;
+    }
+
+    public double getLat() {
+        return lat;
+    }
+
+    public void setLat(double lat) {
+        this.lat = lat;
+    }
+
+    public double getLon() {
+        return lon;
+    }
+
+    public void setLon(double lon) {
+        this.lon = lon;
+    }
+
+    public double getArea() {
+        return area;
+    }
+
+    public void setArea(double area) {
+        this.area = area;
     }
 
     public double getHeight() {
@@ -80,9 +96,11 @@ public class BuildingDef {
     private String ubid;
     private String state;
     private String county;
-    private String center;
     private String mgrs;
     private String grid;
+    private double lat;
+    private double lon;
+    private double area;
 
     private double height;
     private GeoJSON fp;
