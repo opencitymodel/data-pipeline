@@ -132,9 +132,10 @@ public final class CitygmlBuilder {
         building.addGenericAttribute(new StringAttribute("ubid", bldg.getUbid()));
         building.addGenericAttribute(new StringAttribute("state", bldg.getState()));
         building.addGenericAttribute(new StringAttribute("county", bldg.getCounty()));
-        building.addGenericAttribute(new StringAttribute("center", bldg.getCenter()));
+        building.addGenericAttribute(new StringAttribute("latitude", bldg.getLat()));
+        building.addGenericAttribute(new StringAttribute("longitude", bldg.getLon()));
         building.addGenericAttribute(new StringAttribute("mgrs", bldg.getMgrs()));
-        building.addGenericAttribute(new StringAttribute("grid", bldg.getGrid()));
+        building.addGenericAttribute(new StringAttribute("area", bldg.getArea()));
 
         return building;
     }
