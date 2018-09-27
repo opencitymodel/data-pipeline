@@ -6,10 +6,6 @@ OCM_GRIDFILES="./data/grid"
 
 # These environment variables are expected to be set which determine what data we
 # are working on and where to store the results when we are done.
-# OCM_MSFP_VERSION="usbuildings-v1-1"
-# OCM_MSFP_STATE="DistrictofColumbia"
-# OCM_GEOCODE_S3BUCKET="ocm-geocode"
-# OCM_GRID_S3BUCKET="ocm-msfp-grid"
 if [ -z ${OCM_MSFP_VERSION+x} ]; then
     echo "OCM_MSFP_VERSION is not set"
     exit 1

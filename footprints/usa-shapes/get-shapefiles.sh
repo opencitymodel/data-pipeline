@@ -2,8 +2,6 @@
 
 # These environment variables are expected to be set which determine what data we
 # are working on and where to store the results when we are done.
-# YEAR=2017
-# OCM_GEOCODE_S3BUCKET="ocm-geocode"
 if [ -z ${YEAR+x} ]; then
     echo "YEAR is not set"
     exit 1
