@@ -11,6 +11,7 @@ import org.citygml4j.factory.GMLGeometryFactory;
 import org.citygml4j.model.citygml.building.Building;
 import org.citygml4j.model.citygml.core.CityModel;
 import org.citygml4j.model.citygml.core.CityObjectMember;
+import org.citygml4j.model.citygml.generics.DoubleAttribute;
 import org.citygml4j.model.citygml.generics.StringAttribute;
 import org.citygml4j.model.gml.feature.BoundingShape;
 import org.citygml4j.model.gml.geometry.aggregates.MultiSurface;
@@ -132,10 +133,10 @@ public final class CitygmlBuilder {
         building.addGenericAttribute(new StringAttribute("ubid", bldg.getUbid()));
         building.addGenericAttribute(new StringAttribute("state", bldg.getState()));
         building.addGenericAttribute(new StringAttribute("county", bldg.getCounty()));
-        building.addGenericAttribute(new StringAttribute("latitude", ""+bldg.getLat()));
-        building.addGenericAttribute(new StringAttribute("longitude", ""+bldg.getLon()));
+        building.addGenericAttribute(new DoubleAttribute("latitude", bldg.getLat()));
+        building.addGenericAttribute(new DoubleAttribute("longitude", bldg.getLon()));
         building.addGenericAttribute(new StringAttribute("mgrs", bldg.getMgrs()));
-        building.addGenericAttribute(new StringAttribute("area", ""+bldg.getArea()));
+        building.addGenericAttribute(new DoubleAttribute("area", bldg.getArea()));
 
         return building;
     }
