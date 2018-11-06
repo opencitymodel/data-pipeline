@@ -9,57 +9,75 @@ readline = require('readline');
 turf_area = require('@turf/area')
 turf_helpers = require('@turf/helpers')
 _ = require('underscore');
+yargs = require('yargs');
 
-stateCodes = require('./state-codes')
-
-
-
-// we must have a file for us to process
-if (process.argv.length < 3) {
-    console.log("error: no state specified for processing");
-    console.log("usage: node app.js <state-name>");
-    return;
-}
-
-// we must have an environment variable telling us where to load our input files from
-if (!process.env.OCM_RAWFILES) {
-    console.log("error: environment variable 'OCM_RAWFILES' is not set.  this is required.");
-    return;
-}
-
-// we must have an environment variable telling us where to save our gridded files
-if (!process.env.OCM_GRIDFILES) {
-    console.log("error: environment variable 'OCM_GRIDFILES' is not set.  this is required.");
-    return;
-}
+stateCodes = require('./state-codes');
 
 
-const STATE = process.argv[2];
-const FP_RAW_FOLDER = process.env.OCM_RAWFILES;
-const FP_GRID_FOLDER = process.env.OCM_GRIDFILES;
+// This script takes in a file of GeoJSON features (1 per line) and calculates a
+// series of custom attributes for the object then writes out a new JSON object.
 
-const COUNTY_SHAPES_FILE = FP_RAW_FOLDER+"/county.geo.txt";
-const COUNTY_MGRS_MAPPING_FILE = FP_RAW_FOLDER+"/"+STATE+"-mgrs-to-counties.txt";
-const BUILDING_FOOTPRINTS = FP_RAW_FOLDER+"/"+STATE+".txt";
+
+// this will parse our command line options
+const appArgs = yargs
+    .example("node $0 -s California -i ./California.txt -o ./data/grid -c ./California.geo.json -m California-mgrs-to-county.json")
+    .option("input-file", {
+        alias: "i",
+        demandOption: true,
+        describe: "file of GeoJSON to process",
+        requiresArg: true,
+        type: "string"
+    })
+    .option("state", {
+        alias: "s",
+        demandOption: true,
+        describe: "US state being processed",
+        requiresArg: true,
+        type: "string"
+    })
+    .option("output-folder", {
+        alias: "o",
+        demandOption: true,
+        describe: "where the output files are written",
+        requiresArg: true,
+        type: "string"
+    })
+    .option("county-shapes", {
+        alias: "c",
+        demandOption: true,
+        describe: "GeoJSON file of US county shapes",
+        requiresArg: true,
+        type: "string"
+    })
+    .option("mgrs-to-county-file", {
+        alias: "m",
+        demandOption: true,
+        describe: "mgrs-to-county mapping file",
+        requiresArg: true,
+        type: "string"
+    })
+    .help()
+    .argv
+
 
 // this breaks a 1km MGRS identifier into 3 parts
 const MGRS_REGEX = /([0-9A-Z]+)([A-Z]{2})([0-9]{4})/
 
 
-function writeFootprint(mgrsGrid, building) {
+function writeFootprint(state, mgrsGrid, outdir, building) {
     // break apart mgrs and create a path on the fs for <GZD>/<GZD><GSID>/<MGRS>.txt
     const match = MGRS_REGEX.exec(mgrsGrid);
     const gzd = match[1];
     const gsid = match[2];
-    const outpath = STATE+"/"+gzd+"/"+gsid;
+    const outpath = state+"/"+gzd+"/"+gsid;
 
     // make sure our folder path exists, otherwise we can't open up the actual files
-    mkdirp(FP_GRID_FOLDER+"/"+outpath, function(err) {
+    mkdirp(outdir+"/"+outpath, function(err) {
         if(err) {
-            console.log("error creating directory", FP_GRID_FOLDER+"/"+outpath, err);
+            console.log("error creating directory", outdir+"/"+outpath, err);
         } else {
             // TODO: this could probably be more efficient
-            fs.appendFile(FP_GRID_FOLDER+"/"+outpath+"/"+mgrsGrid+".txt", JSON.stringify(building)+"\n", function (err) {
+            fs.appendFile(outdir+"/"+outpath+"/"+mgrsGrid+".txt", JSON.stringify(building)+"\n", function (err) {
                 if (err) console.log("error writing to", mgrsGrid, err);
             });
         }
@@ -118,12 +136,12 @@ function ubid(center, northeast, southwest) {
 }
 
 
-function loadCountyShapes() {
+function loadCountyShapes(args) {
     const countyShapes = {};
 
     // open up our input file and start reading line by line
     const stream = readline.createInterface({
-        input: fs.createReadStream(COUNTY_SHAPES_FILE, { encoding: "utf-8"})
+        input: fs.createReadStream(args.countyShapes, { encoding: "utf-8"})
     });
 
     stream.on("line", function(line) {
@@ -138,7 +156,7 @@ function loadCountyShapes() {
         const msfpStateName = stateName.replace(/ /g, "");
 
         // we only care about the counties for the state we are processing
-        if (msfpStateName === STATE) {
+        if (msfpStateName === args.state) {
             countyShapes[countyDef.properties.GEOID] = countyDef.geometry.coordinates[0];
         }
     });
@@ -147,16 +165,16 @@ function loadCountyShapes() {
         console.log("finished loading county shapes");
 
         // next load the mgrs->county mapping
-        loadMgrsToCountyMapping(countyShapes);
+        loadMgrsToCountyMapping(args, countyShapes);
     });
 }
 
-function loadMgrsToCountyMapping(countyShapes) {
+function loadMgrsToCountyMapping(args, countyShapes) {
     const mgrsToCountyMapping = {};
 
     // open up our input file and start reading line by line
     const stream = readline.createInterface({
-        input: fs.createReadStream(COUNTY_MGRS_MAPPING_FILE, { encoding: "utf-8"})
+        input: fs.createReadStream(args.mgrsToCountyFile, { encoding: "utf-8"})
     });
 
     stream.on("line", function(line) {
@@ -168,19 +186,23 @@ function loadMgrsToCountyMapping(countyShapes) {
         console.log("finished loading mgrs->county mapping");
 
         // now its time to process the building footprints
-        processFootprints(countyShapes, mgrsToCountyMapping);
+        processFootprints(args, countyShapes, mgrsToCountyMapping);
     });
 }
 
-function processFootprints(countyShapes, mgrsToCountyMapping) {
+function processFootprints(args, countyShapes, mgrsToCountyMapping) {
     // open up our input file and start reading line by line
     const stream = readline.createInterface({
-        input: fs.createReadStream(BUILDING_FOOTPRINTS, { encoding: "utf-8"})
+        input: fs.createReadStream(args.inputFile, { encoding: "utf-8"})
     });
 
     const missingCounty = {};
 
     stream.on("line", function(line) {
+        if (line.endsWith(",")) {
+            line = line.substring(0, line.length - 1);
+        }
+
         const footprint = JSON.parse(line);
 
         // hash the geometry coordinates into a unique signature for the building
@@ -248,10 +270,10 @@ function processFootprints(countyShapes, mgrsToCountyMapping) {
         }
 
         // add the footprint to output file
-        writeFootprint(mgrsGrid, {
+        writeFootprint(args.state, mgrsGrid, args.outputFolder, {
             sig: signature,
             ubid: bid,
-            state: STATE,
+            state: args.state,
             county: countyId,
             lat: center.lat,
             lon: center.lon,
@@ -271,4 +293,4 @@ function processFootprints(countyShapes, mgrsToCountyMapping) {
 }
 
 // this kicks things off and runs through everything
-loadCountyShapes();
+loadCountyShapes(appArgs);
