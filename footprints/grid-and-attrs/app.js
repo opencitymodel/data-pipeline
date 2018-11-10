@@ -197,93 +197,108 @@ function processFootprints(args, countyShapes, mgrsToCountyMapping) {
     });
 
     const missingCounty = {};
+    let fpErrors = 0;
 
     stream.on("line", function(line) {
-        if (line.endsWith(",")) {
-            line = line.substring(0, line.length - 1);
-        }
+        try {
+            if (line.endsWith(",")) {
+                line = line.substring(0, line.length - 1);
+            }
 
-        const footprint = JSON.parse(line);
+            const footprint = JSON.parse(line);
 
-        // hash the geometry coordinates into a unique signature for the building
-        const hashStr = footprint.geometry.coordinates[0].reduce(function (acc, val) {
-            return acc + val;
-        }, "");
-        const signature = quickHash(hashStr);
+            // hash the geometry coordinates into a unique signature for the building
+            const hashStr = footprint.geometry.coordinates[0].reduce(function (acc, val) {
+                return acc + val;
+            }, "");
+            const signature = quickHash(hashStr);
 
-        // calculate centroid
-        const ctr = geolib.getCenter(footprint.geometry.coordinates[0].map(p => {
-            return { longitude: p[0], latitude: p[1] }
-        }));
-        // not sure why, but the centroid funtion is returning values as strings =(
-        const center = { lat: parseFloat(ctr.latitude), lon: parseFloat(ctr.longitude) }
+            // calculate centroid
+            const ctr = geolib.getCenter(footprint.geometry.coordinates[0].map(p => {
+                return { longitude: p[0], latitude: p[1] }
+            }));
+            // not sure why, but the centroid funtion is returning values as strings =(
+            const center = { lat: parseFloat(ctr.latitude), lon: parseFloat(ctr.longitude) }
 
-        // calculate bounding box
-        const bbox = geolib.getBounds(footprint.geometry.coordinates[0].map(p => {
-            return { longitude: p[0], latitude: p[1] }
-        }));
+            // calculate bounding box
+            const bbox = geolib.getBounds(footprint.geometry.coordinates[0].map(p => {
+                return { longitude: p[0], latitude: p[1] }
+            }));
 
-        // calculate area
-        const turfPoly = turf_helpers.polygon(footprint.geometry.coordinates);
-        const area = turf_area.default(turfPoly);
+            // calculate area
+            const turfPoly = turf_helpers.polygon(footprint.geometry.coordinates);
+            const area = turf_area.default(turfPoly);
 
-        // calculate MGRS grid @ 1km resolution
-        const mgrsGrid = mgrs.forward([center.lon, center.lat], 2);
+            // calculate MGRS grid @ 1km resolution
+            const mgrsGrid = mgrs.forward([center.lon, center.lat], 2);
 
-        // calculate UBID for the footprint
-        const bbox_ne = { latitude: bbox.maxLat, longitude: bbox.maxLng }
-        const bbox_sw = { latitude: bbox.minLat, longitude: bbox.minLng }
-        const bid = ubid(center, bbox_ne, bbox_sw);
+            // calculate UBID for the footprint
+            const bbox_ne = { latitude: bbox.maxLat, longitude: bbox.maxLng }
+            const bbox_sw = { latitude: bbox.minLat, longitude: bbox.minLng }
+            const bid = ubid(center, bbox_ne, bbox_sw);
 
-        // reverse geocode to determine county
-        let countyId = null;
-        const possibleCounties = mgrsToCountyMapping[mgrsGrid];
-        if (possibleCounties && possibleCounties.length > 0) {
-            // if there is only 1 county for this grid then we are done
-            if (possibleCounties.length === 1) {
-                countyId = possibleCounties[0];
+            // reverse geocode to determine county
+            let countyId = null;
+            const possibleCounties = mgrsToCountyMapping[mgrsGrid];
+            if (possibleCounties && possibleCounties.length > 0) {
+                // if there is only 1 county for this grid then we are done
+                if (possibleCounties.length === 1) {
+                    countyId = possibleCounties[0];
 
-            // otherwise, we need to use the county shape files to determine the county for this building
+                // otherwise, we need to use the county shape files to determine the county for this building
+                } else {
+                    countyId = _.find(possibleCounties, county => {
+                        return pointInPolygon([center.lon, center.lat], countyShapes[county])
+                    });
+                }
             } else {
-                countyId = _.find(possibleCounties, county => {
+                // TODO: if possibleCounties is non-existant then assume our prep job missed this grid and we need
+                //      to do the work right now
+                countyId = _.find(Object.keys(countyShapes), county => {
                     return pointInPolygon([center.lon, center.lat], countyShapes[county])
                 });
+
+                if (countyId) {
+                    console.log("MISSING_MATCHED", mgrsGrid, countyId, center.lat+","+center.lon);
+                } else {
+                    console.log("NO_COUNTY", mgrsGrid, center.lat+","+center.lon);
+                }
+
+                if (!missingCounty[mgrsGrid]) {
+                    missingCounty[mgrsGrid] = [];
+                }
+
+                missingCounty[mgrsGrid].push(center);
             }
-        } else {
-            // TODO: if possibleCounties is non-existant then assume our prep job missed this grid and we need
-            //      to do the work right now
-            countyId = _.find(Object.keys(countyShapes), county => {
-                return pointInPolygon([center.lon, center.lat], countyShapes[county])
+
+            // look for existing height property on footprint
+            // TODO: this is pretty specific.  we should consider a more generic way to do this
+            const height = footprint.properties.Height;
+
+            // add the footprint to output file
+            writeFootprint(args.state, mgrsGrid, args.outputFolder, {
+                sig: signature,
+                ubid: bid,
+                state: args.state,
+                county: countyId,
+                lat: center.lat,
+                lon: center.lon,
+                mgrs: mgrsGrid,
+                area,
+                height,
+                fp: footprint
             });
-
-            if (countyId) {
-                console.log("MISSING_MATCHED", mgrsGrid, countyId, center.lat+","+center.lon);
-            } else {
-                console.log("NO_COUNTY", mgrsGrid, center.lat+","+center.lon);
-            }
-
-            if (!missingCounty[mgrsGrid]) {
-                missingCounty[mgrsGrid] = [];
-            }
-
-            missingCounty[mgrsGrid].push(center);
+        } catch(error) {
+            console.log("error processing footprint", error, line);
+            fpErrors++;
         }
-
-        // add the footprint to output file
-        writeFootprint(args.state, mgrsGrid, args.outputFolder, {
-            sig: signature,
-            ubid: bid,
-            state: args.state,
-            county: countyId,
-            lat: center.lat,
-            lon: center.lon,
-            mgrs: mgrsGrid,
-            area,
-            fp: footprint
-        });
     });
 
     stream.on("close", () => {
+        if (fpErrors > 0) {
+            console.log("Finished with", fpErrors, "errors");
+        }
+
         const g = Object.keys(missingCounty).sort();
         g.forEach(grid => {
             console.log(grid, missingCounty[grid].length);
