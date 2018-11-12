@@ -89,7 +89,7 @@ public class Main {
 
     public void writeCitygml() {
         String outfile = this.name + "-" + String.format("%03d", this.index);
-        System.out.println(String.format("Writing %d buildings to file %s", this.builder.getNumBuildings(), this.path + "/" + outfile));
+        System.out.println(String.format("Writing %d buildings to file %s", this.builder.getNumBuildings(), outfile));
         this.builder.writeFile(this.path, outfile);
         // upload it to s3, delete it
         this.builder = new CitygmlBuilder(this.builder.getLod());

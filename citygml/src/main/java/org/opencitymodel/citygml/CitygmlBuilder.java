@@ -3,6 +3,7 @@ package org.opencitymodel.citygml;
 import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
+import java.util.Base64;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 import java.util.ArrayList;
@@ -117,7 +118,7 @@ public final class CitygmlBuilder {
 
     private Building createBuilding(BuildingDef bldg) {
         Building building = new Building();
-        building.setId(bldg.getId());
+        building.setId(Base64.getEncoder().withoutPadding().encodeToString(bldg.getId().getBytes()));
 
         // convert the coordinates of the footprint into our desired CRS
         GeoJSON fp = bldg.getFp();
