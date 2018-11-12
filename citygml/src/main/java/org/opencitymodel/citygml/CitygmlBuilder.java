@@ -1,6 +1,10 @@
 package org.opencitymodel.citygml;
 
+import java.io.BufferedOutputStream;
 import java.io.File;
+import java.io.FileOutputStream;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipOutputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -72,7 +76,7 @@ public final class CitygmlBuilder {
      *
      * @param path Filesystem path where the citygml should be written.
      */
-    public void writeFile(String path) {
+    public void writeFile(String path, String filename) {
 
         try {
             CityModel cityModel = new CityModel();
@@ -86,7 +90,13 @@ public final class CitygmlBuilder {
             CityGMLContext ctx = CityGMLContext.getInstance();
             CityGMLBuilder builder = ctx.createCityGMLBuilder(getClass().getClassLoader());
             CityGMLOutputFactory out = builder.createCityGMLOutputFactory(CityGMLVersion.DEFAULT);
-            CityGMLWriter writer = out.createCityGMLWriter(new File(path), "UTF-8");
+
+            // we want a Zip compressed output
+            FileOutputStream fos = new FileOutputStream(path+"/"+filename+".zip");
+            BufferedOutputStream bos = new BufferedOutputStream(fos);
+            ZipOutputStream zos = new ZipOutputStream(bos);
+            zos.putNextEntry(new ZipEntry(filename+".gml"));
+            CityGMLWriter writer = out.createCityGMLWriter(zos, "UTF-8");
 
             // add 'boundedBy' element along with coordinate system
             BoundingShape bbox = cityModel.calcBoundedBy(BoundingBoxOptions.defaults());
@@ -127,7 +137,9 @@ public final class CitygmlBuilder {
         }
 
         // set the height
-        building.setMeasuredHeight(new Length(bldg.getHeight()));
+        Length measuredHeight = new Length(bldg.getHeight());
+        measuredHeight.setUom("urn:ogc:def:uom:UCUM::m");
+        building.setMeasuredHeight(measuredHeight);
 
         // add custom attributes
         building.addGenericAttribute(new StringAttribute("ubid", bldg.getUbid()));
