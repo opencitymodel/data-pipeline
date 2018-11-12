@@ -77,42 +77,37 @@ public final class CitygmlBuilder {
      *
      * @param path Filesystem path where the citygml should be written.
      */
-    public void writeFile(String path, String filename) {
+    public void writeFile(String path, String filename) throws Exception {
 
-        try {
-            CityModel cityModel = new CityModel();
+        CityModel cityModel = new CityModel();
 
-            // add our collected buildings to our city model
-            for( BuildingDef bldg : buildings ) {
-                Building building = createBuilding(bldg);
-                cityModel.addCityObjectMember(new CityObjectMember(building));
-            }
-
-            CityGMLContext ctx = CityGMLContext.getInstance();
-            CityGMLBuilder builder = ctx.createCityGMLBuilder(getClass().getClassLoader());
-            CityGMLOutputFactory out = builder.createCityGMLOutputFactory(CityGMLVersion.DEFAULT);
-
-            // we want a Zip compressed output
-            FileOutputStream fos = new FileOutputStream(path+"/"+filename+".zip");
-            BufferedOutputStream bos = new BufferedOutputStream(fos);
-            ZipOutputStream zos = new ZipOutputStream(bos);
-            zos.putNextEntry(new ZipEntry(filename+".gml"));
-            CityGMLWriter writer = out.createCityGMLWriter(zos, "UTF-8");
-
-            // add 'boundedBy' element along with coordinate system
-            BoundingShape bbox = cityModel.calcBoundedBy(BoundingBoxOptions.defaults());
-            bbox.getEnvelope().setSrsName(this.targetCrs);
-            cityModel.setBoundedBy(bbox);
-
-            writer.setPrefixes(CityGMLVersion.DEFAULT);
-            writer.setSchemaLocations(CityGMLVersion.DEFAULT);
-            writer.setIndentString("  ");
-            writer.write(cityModel);
-            writer.close();
-
-        } catch(Exception e) {
-            e.printStackTrace();
+        // add our collected buildings to our city model
+        for( BuildingDef bldg : buildings ) {
+            Building building = createBuilding(bldg);
+            cityModel.addCityObjectMember(new CityObjectMember(building));
         }
+
+        CityGMLContext ctx = CityGMLContext.getInstance();
+        CityGMLBuilder builder = ctx.createCityGMLBuilder(getClass().getClassLoader());
+        CityGMLOutputFactory out = builder.createCityGMLOutputFactory(CityGMLVersion.DEFAULT);
+
+        // we want a Zip compressed output
+        FileOutputStream fos = new FileOutputStream(path+"/"+filename+".zip");
+        BufferedOutputStream bos = new BufferedOutputStream(fos);
+        ZipOutputStream zos = new ZipOutputStream(bos);
+        zos.putNextEntry(new ZipEntry(filename+".gml"));
+        CityGMLWriter writer = out.createCityGMLWriter(zos, "UTF-8");
+
+        // add 'boundedBy' element along with coordinate system
+        BoundingShape bbox = cityModel.calcBoundedBy(BoundingBoxOptions.defaults());
+        bbox.getEnvelope().setSrsName(this.targetCrs);
+        cityModel.setBoundedBy(bbox);
+
+        writer.setPrefixes(CityGMLVersion.DEFAULT);
+        writer.setSchemaLocations(CityGMLVersion.DEFAULT);
+        writer.setIndentString("  ");
+        writer.write(cityModel);
+        writer.close();
     }
 
 
