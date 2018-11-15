@@ -38,4 +38,8 @@ OUTFILE_PREFIX="${OCM_STATE}-${OCM_COUNTY}"
 java -server -jar citygml.jar ${OCM_BLDGSFILES} ${OCM_GMLFILES} ${OUTFILE_PREFIX}
 
 # push the citygml files back to S3
-aws s3 cp ${OCM_GMLFILES} s3://${OCM_GML_S3BUCKET}/${OCM_STATE}/ --recursive
+if [ $? -eq 0 ]; then
+    aws s3 cp ${OCM_GMLFILES} s3://${OCM_GML_S3BUCKET}/${OCM_STATE}/ --recursive
+else
+    exit 1
+fi

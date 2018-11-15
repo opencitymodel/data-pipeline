@@ -3,7 +3,7 @@
 # Simple script which wraps the AWS cmd line tool and is meant for submitting
 # a job to generate citygml for a given state & county
 NAME="citygml"
-REVISION="3"
+REVISION="4"
 QUEUE="SmallBatchJobs"
 
 STATE=$1

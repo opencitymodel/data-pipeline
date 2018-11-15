@@ -28,11 +28,11 @@ public class Main {
             System.out.println("Directory of files");
             try (Stream<Path> paths = Files.walk(Paths.get(indir))) {
                 paths.forEach(p -> {
-                    if(p.toFile().isFile() && p.toAbsolutePath().toString().endsWith(".json")) {
+                    if (p.toFile().isFile() && p.toAbsolutePath().toString().endsWith(".json")) {
                         main.processFile(p.toString());
                     }
                 });
-            } catch(IOException ioe) {
+            } catch (IOException ioe) {
                 ioe.printStackTrace();
             }
         } else if (file.isFile()) {
@@ -66,6 +66,7 @@ public class Main {
 
     public void processFile(String path) {
         System.out.println("processing: "+path);
+
         try {
             FileReader fileReader = new FileReader(new File(path));
             BufferedReader bufferedReader = new BufferedReader(fileReader);
@@ -82,16 +83,23 @@ public class Main {
             }
 
             fileReader.close();
-        } catch (IOException e) {
-            e.printStackTrace();
+        } catch(Exception ex) {
+            ex.printStackTrace();
+            System.exit(1);
         }
     }
 
     public void writeCitygml() {
-        String outfile = this.path + "/" + this.name + "-" + String.format("%03d", this.index) + ".gml";
-        System.out.println(String.format("Writing %d buildings to file %s", this.builder.getNumBuildings(), outfile));
-        this.builder.writeFile(outfile);
-        this.builder = new CitygmlBuilder(this.builder.getLod());
-        this.index++;
+        try {
+            String outfile = this.name + "-" + String.format("%03d", this.index);
+            System.out.println(String.format("Writing %d buildings to file %s", this.builder.getNumBuildings(), outfile));
+            this.builder.writeFile(this.path, outfile);
+            // upload it to s3, delete it
+            this.builder = new CitygmlBuilder(this.builder.getLod());
+            this.index++;
+        } catch(Exception ex) {
+            ex.printStackTrace();
+            System.exit(1);
+        }
     }
 }
