@@ -143,6 +143,7 @@ public final class CitygmlBuilder {
         building.addGenericAttribute(new DoubleAttribute("longitude", bldg.getLon()));
         building.addGenericAttribute(new StringAttribute("mgrs", bldg.getMgrs()));
         building.addGenericAttribute(new DoubleAttribute("area", bldg.getArea()));
+        building.addGenericAttribute(new StringAttribute("height_source", bldg.getHeight_source()));
 
         return building;
     }
