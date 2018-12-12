@@ -90,6 +90,14 @@ public class BuildingDef {
         this.height_source = height_source;
     }
 
+    public String getFp_source() {
+        return fp_source;
+    }
+
+    public void setFp_source(String fp_source) {
+        this.fp_source = fp_source;
+    }
+
     public Geometry getGeometry() {
         return geometry;
     }
@@ -110,5 +118,6 @@ public class BuildingDef {
 
     private double height;
     private String height_source;
+    private String fp_source;
     private Geometry geometry;
 }
