@@ -1,7 +1,5 @@
 package org.opencitymodel.citygml;
 
-import org.opencitymodel.citygml.GeoJSON;
-
 
 public class BuildingDef {
     public String getId() {
@@ -84,12 +82,28 @@ public class BuildingDef {
         this.height = height;
     }
 
-    public GeoJSON getFp() {
-        return fp;
+    public String getHeight_source() {
+        return height_source;
     }
 
-    public void setFp(GeoJSON fp) {
-        this.fp = fp;
+    public void setHeight_source(String height_source) {
+        this.height_source = height_source;
+    }
+
+    public String getFp_source() {
+        return fp_source;
+    }
+
+    public void setFp_source(String fp_source) {
+        this.fp_source = fp_source;
+    }
+
+    public Geometry getGeometry() {
+        return geometry;
+    }
+
+    public void setGeometry(Geometry geometry) {
+        this.geometry = geometry;
     }
 
     private String id;
@@ -103,5 +117,7 @@ public class BuildingDef {
     private double area;
 
     private double height;
-    private GeoJSON fp;
+    private String height_source;
+    private String fp_source;
+    private Geometry geometry;
 }

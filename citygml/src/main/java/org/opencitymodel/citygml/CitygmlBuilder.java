@@ -43,9 +43,9 @@ public final class CitygmlBuilder {
     private final int LOD;
 
     // We use this to do the coordinate system transformation before writing out the final Citygml
-    private final String sourceCrs = "EPSG:4326";
-    private final String targetCrs = "EPSG:3857";
-    private final CoordinateOperation crsTransform = GeoUtil.getTransform(sourceCrs, targetCrs);
+//    private final String sourceCrs = "EPSG:4326";
+//    private final String targetCrs = "EPSG:3857";
+//    private final CoordinateOperation crsTransform = GeoUtil.getTransform(sourceCrs, targetCrs);
 
 
     // The buildings we've collected for inclusion in our file
@@ -100,7 +100,8 @@ public final class CitygmlBuilder {
 
         // add 'boundedBy' element along with coordinate system
         BoundingShape bbox = cityModel.calcBoundedBy(BoundingBoxOptions.defaults());
-        bbox.getEnvelope().setSrsName(this.targetCrs);
+//        bbox.getEnvelope().setSrsName(this.targetCrs);
+        bbox.getEnvelope().setSrsName("EPSG:4326");
         cityModel.setBoundedBy(bbox);
 
         writer.setPrefixes(CityGMLVersion.DEFAULT);
@@ -116,20 +117,18 @@ public final class CitygmlBuilder {
         building.setId(Base64.getEncoder().withoutPadding().encodeToString(bldg.getId().getBytes()));
 
         // convert the coordinates of the footprint into our desired CRS
-        GeoJSON fp = bldg.getFp();
-        double[][] transformedCoords = transformCoordinates(fp.getGeometry().getCoordinates()[0]);
-        fp.getGeometry().getCoordinates()[0] = transformedCoords;
+        Geometry geometry = bldg.getGeometry();
+//        double[][] transformedCoords = transformCoordinates(geometry.getCoordinates()[0]);
+//        geometry.getCoordinates()[0] = transformedCoords;
 
         // construct the building surface (depends on LOD)
         if (this.LOD == LOD0) {
-            MultiSurfaceProperty surface = createLOD0Footprint(fp);
+            MultiSurfaceProperty surface = createLOD0Footprint(geometry);
             building.setLod0FootPrint(surface);
         } else {
             // default is LOD1
-            SolidProperty solid = createLOD1Solid(fp, bldg.getHeight());
+            SolidProperty solid = createLOD1Solid(geometry, bldg.getHeight());
             building.setLod1Solid(solid);
-//            MultiSurfaceProperty surface = createLOD1Building(fp, bldg.getHeight());
-//            building.setLod1MultiSurface(surface);
         }
 
         // set the height
@@ -145,33 +144,35 @@ public final class CitygmlBuilder {
         building.addGenericAttribute(new DoubleAttribute("longitude", bldg.getLon()));
         building.addGenericAttribute(new StringAttribute("mgrs", bldg.getMgrs()));
         building.addGenericAttribute(new DoubleAttribute("area", bldg.getArea()));
+        building.addGenericAttribute(new StringAttribute("height_source", bldg.getHeight_source()));
+        building.addGenericAttribute(new StringAttribute("fp_source", bldg.getFp_source()));
 
         return building;
     }
 
 
-    private double[][] transformCoordinates(double[][] coords) {
-        try {
-            double[][] newCoords = new double[coords.length][];
-            for (int i=0; i < coords.length; i++) {
-                double[] coord = {coords[i][0], coords[i][1]};
-                newCoords[i] = crsTransform.transform(coord);
-            }
-
-            return newCoords;
-
-        } catch(Exception ex) {
-            return coords;
-        }
-    }
+//    private double[][] transformCoordinates(double[][] coords) {
+//        try {
+//            double[][] newCoords = new double[coords.length][];
+//            for (int i=0; i < coords.length; i++) {
+//                double[] coord = {coords[i][0], coords[i][1]};
+//                newCoords[i] = crsTransform.transform(coord);
+//            }
+//
+//            return newCoords;
+//
+//        } catch(Exception ex) {
+//            return coords;
+//        }
+//    }
 
 
     /** Create an LOD0 footprint surface **/
-    private MultiSurfaceProperty createLOD0Footprint(GeoJSON fp) {
+    private MultiSurfaceProperty createLOD0Footprint(Geometry geometry) {
         try {
             // NOTE: this is only a 2 dimensional polygon, so our coordinates only need 2 values
             //       also, reminder that coordinates must be in the order of [longitude, latitude]
-            Polygon polygon = geom.createLinearPolygon(fp.getGeometry().getCoordinates()[0], 2);
+            Polygon polygon = geom.createLinearPolygon(geometry.getCoordinates()[0], 2);
 
             MultiSurface footprint = new MultiSurface();
             footprint.addSurfaceMember(new SurfaceProperty(polygon));
@@ -184,24 +185,11 @@ public final class CitygmlBuilder {
 
 
     /** Create an LOD1 building solid **/
-//    private MultiSurfaceProperty createLOD1Building(GeoJSON fp, double height) {
-//        // extrude our footprint into a list of polygons making a 3D shape
-//        List<Polygon> surfaces = extrudeBuilding(fp, height);
-//
-//        List<SurfaceProperty> surfaceMembers = new ArrayList<>();
-//        for (Polygon surface : surfaces) {
-//            surfaceMembers.add(new SurfaceProperty(surface));
-//        }
-//
-//        MultiSurface multiSurface = new MultiSurface();
-//        multiSurface.setSurfaceMember(surfaceMembers);
-//
-//        return new MultiSurfaceProperty(multiSurface);
-//    }
+    private SolidProperty createLOD1Solid(Geometry geometry, double height) {
+        double heightInDegrees = height/111139.0;
 
-    private SolidProperty createLOD1Solid(GeoJSON fp, double height) {
         // extrude our footprint into a list of polygons making a 3D shape
-        List<Polygon> surfaces = extrudeBuilding(fp, height);
+        List<Polygon> surfaces = extrudeBuilding(geometry, heightInDegrees);
 
         List<SurfaceProperty> surfaceMembers = new ArrayList<>();
         for (Polygon surface : surfaces) {
@@ -218,14 +206,14 @@ public final class CitygmlBuilder {
 
 
     // NOTE: we expect each point in the footprint coordinates to be of the form [longitude, latitude]
-    private List<Polygon> extrudeBuilding(GeoJSON fp, double height) {
+    private List<Polygon> extrudeBuilding(Geometry geometry, double height) {
         List<Polygon> surfaces = new ArrayList<>();
 
         // floor
-        surfaces.add(makePolygon(fp.getGeometry().getCoordinates()[0], 0.0));
+        surfaces.add(makePolygon(geometry.getCoordinates()[0], 0.0));
 
         // walls
-        double[][] coords = fp.getGeometry().getCoordinates()[0];
+        double[][] coords = geometry.getCoordinates()[0];
         for( int i=0; i < coords.length; i++ ) {
             // take current point and next point as the 2 wall vertices we want to extrude
             // if we are only the final point of our footprint then use the first vertex to make the final wall
@@ -241,7 +229,7 @@ public final class CitygmlBuilder {
         }
 
         // roof
-        surfaces.add(makePolygon(fp.getGeometry().getCoordinates()[0], height));
+        surfaces.add(makePolygon(geometry.getCoordinates()[0], height));
 
         return surfaces;
     }
