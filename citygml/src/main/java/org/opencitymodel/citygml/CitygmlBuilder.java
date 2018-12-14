@@ -43,9 +43,9 @@ public final class CitygmlBuilder {
     private final int LOD;
 
     // We use this to do the coordinate system transformation before writing out the final Citygml
-    private final String sourceCrs = "EPSG:4326";
-    private final String targetCrs = "EPSG:3857";
-    private final CoordinateOperation crsTransform = GeoUtil.getTransform(sourceCrs, targetCrs);
+//    private final String sourceCrs = "EPSG:4326";
+//    private final String targetCrs = "EPSG:3857";
+//    private final CoordinateOperation crsTransform = GeoUtil.getTransform(sourceCrs, targetCrs);
 
 
     // The buildings we've collected for inclusion in our file
@@ -100,7 +100,8 @@ public final class CitygmlBuilder {
 
         // add 'boundedBy' element along with coordinate system
         BoundingShape bbox = cityModel.calcBoundedBy(BoundingBoxOptions.defaults());
-        bbox.getEnvelope().setSrsName(this.targetCrs);
+//        bbox.getEnvelope().setSrsName(this.targetCrs);
+        bbox.getEnvelope().setSrsName("EPSG:4326");
         cityModel.setBoundedBy(bbox);
 
         writer.setPrefixes(CityGMLVersion.DEFAULT);
@@ -117,8 +118,8 @@ public final class CitygmlBuilder {
 
         // convert the coordinates of the footprint into our desired CRS
         Geometry geometry = bldg.getGeometry();
-        double[][] transformedCoords = transformCoordinates(geometry.getCoordinates()[0]);
-        geometry.getCoordinates()[0] = transformedCoords;
+//        double[][] transformedCoords = transformCoordinates(geometry.getCoordinates()[0]);
+//        geometry.getCoordinates()[0] = transformedCoords;
 
         // construct the building surface (depends on LOD)
         if (this.LOD == LOD0) {
@@ -150,20 +151,20 @@ public final class CitygmlBuilder {
     }
 
 
-    private double[][] transformCoordinates(double[][] coords) {
-        try {
-            double[][] newCoords = new double[coords.length][];
-            for (int i=0; i < coords.length; i++) {
-                double[] coord = {coords[i][0], coords[i][1]};
-                newCoords[i] = crsTransform.transform(coord);
-            }
-
-            return newCoords;
-
-        } catch(Exception ex) {
-            return coords;
-        }
-    }
+//    private double[][] transformCoordinates(double[][] coords) {
+//        try {
+//            double[][] newCoords = new double[coords.length][];
+//            for (int i=0; i < coords.length; i++) {
+//                double[] coord = {coords[i][0], coords[i][1]};
+//                newCoords[i] = crsTransform.transform(coord);
+//            }
+//
+//            return newCoords;
+//
+//        } catch(Exception ex) {
+//            return coords;
+//        }
+//    }
 
 
     /** Create an LOD0 footprint surface **/
@@ -185,8 +186,10 @@ public final class CitygmlBuilder {
 
     /** Create an LOD1 building solid **/
     private SolidProperty createLOD1Solid(Geometry geometry, double height) {
+        double heightInDegrees = height/111139.0;
+
         // extrude our footprint into a list of polygons making a 3D shape
-        List<Polygon> surfaces = extrudeBuilding(geometry, height);
+        List<Polygon> surfaces = extrudeBuilding(geometry, heightInDegrees);
 
         List<SurfaceProperty> surfaceMembers = new ArrayList<>();
         for (Polygon surface : surfaces) {
