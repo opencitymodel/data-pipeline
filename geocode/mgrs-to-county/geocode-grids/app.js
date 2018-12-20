@@ -96,22 +96,23 @@ function processState(stateDef, countyDefs) {
     const started = new Date();
     console.log("Starting "+STATE+" @", started);
 
-    // make a bbox of the state
-    // TODO: probably the better thing to do here is have 2 bbox for Alaska, run them both, and combine results
-    // const bbox = STATE === "Alaska" ? ALASKA_BBOX : geolib.getBounds(getCoords(stateDef));
+    // get a list of all shapes which make up the state
     const bboxes = getBoxes(stateDef);
+
     const grids = {};
+
+    // iterate over each shape and compute its mgrs grids
     bboxes.forEach(bbox => {
         console.log("bbox", "("+bbox.minLng+","+bbox.minLat+","+bbox.maxLng+","+bbox.maxLat+")");
 
         // determine all of the possible MGRS grids within our bounding box
         const possibleGrids = findGrids(bbox);
+        console.log(`  found=${possibleGrids.size}`);
 
         // iterate over the possible grids and test them, first for within state then for which county(s)
-        const found = _.keys(possibleGrids).length;
         let tested = 0;
         let added = 0;
-        _.keys(possibleGrids).forEach(grid => {
+        possibleGrids.forEach(grid => {
             if (!grids[grid]) {
                 tested++;
 
@@ -144,7 +145,7 @@ function processState(stateDef, countyDefs) {
             }
         });
 
-        console.log(`found=${found}, tested=${tested}, added=${added}`)
+        console.log(`  tested=${tested}, added=${added}`)
     });
 
     // write valid grids out into a file
@@ -165,7 +166,7 @@ function processState(stateDef, countyDefs) {
 
 const MOVEMENT = 0.001;
 function findGrids(bbox) {
-    const grids = {};
+    const grids = new Set();
 
     // these are the termination points of the bbox, which we pad a little
     const bboxMinLon = bbox.maxLng + 0.2;
@@ -177,7 +178,7 @@ function findGrids(bbox) {
         while (lon < bboxMinLon) {
             const grid = mgrs.forward([lon, lat], 2);
 
-            grids[grid] = {};
+            grids.add(grid);
 
             // move east
             lon = lon + MOVEMENT;
