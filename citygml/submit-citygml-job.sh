@@ -6,12 +6,13 @@ NAME="citygml"
 REVISION="4"
 QUEUE="SmallBatchJobs"
 
-STATE=$1
-COUNTY=$2
+VERSION=$1
+STATE=$2
+COUNTY=$3
 DATE=`date +%s`
 JOB_NAME="${STATE}-${NAME}-${DATE}"
 JOB_DEF="${NAME}:${REVISION}"
-JOB_PROPS="{\"environment\":[{\"name\":\"OCM_STATE\",\"value\":\"${STATE}\"},{\"name\":\"OCM_COUNTY\",\"value\":\"${COUNTY}\"}]}"
+JOB_PROPS="{\"environment\":[{\"name\":\"OCM_STATE\",\"value\":\"${STATE}\"},{\"name\":\"OCM_COUNTY\",\"value\":\"${COUNTY}\"},{\"name\":\"OCM_VERSION\",\"value\":\"${VERSION}\"}]}"
 
 
 # TODO: we could potentially try to lookup the latest revision for the job def, or ask the user for it?
