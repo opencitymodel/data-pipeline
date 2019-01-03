@@ -18,7 +18,7 @@ aws s3 cp s3://${OCM_GEOCODE_S3BUCKET}/county.geo.txt .
 
 # process the state and build the mgrs -> county mapping file
 # this will always produce a file named <state>-mgrs-to-counties.txt
-node ./geocode-grids/app.js ./state.geo.json ./county.geo.txt ${OCM_STATE}
+node --max-old-space-size=8192 ./geocode-grids/app.js ./state.geo.json ./county.geo.txt ${OCM_STATE}
 
 # push the resulting file up to S3
 aws s3 cp ./${OCM_STATE}-mgrs-to-counties.txt s3://${OCM_GEOCODE_S3BUCKET}/
