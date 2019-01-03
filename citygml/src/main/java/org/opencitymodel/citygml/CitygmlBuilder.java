@@ -1,7 +1,6 @@
 package org.opencitymodel.citygml;
 
 import java.io.BufferedOutputStream;
-import java.io.File;
 import java.io.FileOutputStream;
 import java.util.Base64;
 import java.util.zip.ZipEntry;
@@ -11,6 +10,11 @@ import java.util.Arrays;
 import java.util.List;
 
 import org.citygml4j.CityGMLContext;
+import org.citygml4j.binding.cityjson.feature.CRSType;
+import org.citygml4j.binding.cityjson.feature.MetadataType;
+import org.citygml4j.builder.cityjson.CityJSONBuilder;
+import org.citygml4j.builder.cityjson.json.io.writer.CityJSONOutputFactory;
+import org.citygml4j.builder.cityjson.json.io.writer.CityJSONWriter;
 import org.citygml4j.builder.jaxb.CityGMLBuilder;
 import org.citygml4j.factory.GMLGeometryFactory;
 import org.citygml4j.model.citygml.building.Building;
@@ -31,7 +35,6 @@ import org.citygml4j.model.module.citygml.CityGMLVersion;
 import org.citygml4j.util.bbox.BoundingBoxOptions;
 import org.citygml4j.xml.io.CityGMLOutputFactory;
 import org.citygml4j.xml.io.writer.CityGMLWriter;
-import org.cts.op.CoordinateOperation;
 
 
 public final class CitygmlBuilder {
@@ -39,8 +42,14 @@ public final class CitygmlBuilder {
     public static final int LOD0 = 0;
     public static final int LOD1 = 1;
 
+    public static final String CITYGML = "gml";
+    public static final String CITYJSON = "json";
+
     // The CityGML LOD to target
     private final int LOD;
+
+    // The data format we are writing.  CityGML or CityJSON
+    private final String FORMAT;
 
 
     // The buildings we've collected for inclusion in our file
@@ -49,13 +58,18 @@ public final class CitygmlBuilder {
     private final GMLGeometryFactory geom = new GMLGeometryFactory();
 
 
-    public CitygmlBuilder(int lod) {
+    public CitygmlBuilder(int lod, String format) {
         this.LOD = lod;
+        this.FORMAT = format;
     }
 
 
     public int getLod() {
         return this.LOD;
+    }
+
+    public String getFormat() {
+        return this.FORMAT;
     }
 
     public void addBuilding(BuildingDef bldg) {
@@ -73,7 +87,6 @@ public final class CitygmlBuilder {
      * @param path Filesystem path where the citygml should be written.
      */
     public void writeFile(String path, String filename) throws Exception {
-
         CityModel cityModel = new CityModel();
 
         // add our collected buildings to our city model
@@ -82,28 +95,54 @@ public final class CitygmlBuilder {
             cityModel.addCityObjectMember(new CityObjectMember(building));
         }
 
-        CityGMLContext ctx = CityGMLContext.getInstance();
-        CityGMLBuilder builder = ctx.createCityGMLBuilder(getClass().getClassLoader());
-        CityGMLOutputFactory out = builder.createCityGMLOutputFactory(CityGMLVersion.DEFAULT);
-
-        // we want a Zip compressed output
-        FileOutputStream fos = new FileOutputStream(path+"/"+filename+".zip");
-        BufferedOutputStream bos = new BufferedOutputStream(fos);
-        ZipOutputStream zos = new ZipOutputStream(bos);
-        zos.putNextEntry(new ZipEntry(filename+".gml"));
-        CityGMLWriter writer = out.createCityGMLWriter(zos, "UTF-8");
-
-        // add 'boundedBy' element along with coordinate system
+        // add metadata, including bounding box and coordinate system
         BoundingShape bbox = cityModel.calcBoundedBy(BoundingBoxOptions.defaults());
         // NOTE: 4979 is a 3D CRS that uses lat,lon in degrees, and height in meters
         bbox.getEnvelope().setSrsName("EPSG:4979");
         cityModel.setBoundedBy(bbox);
 
-        writer.setPrefixes(CityGMLVersion.DEFAULT);
-        writer.setSchemaLocations(CityGMLVersion.DEFAULT);
-        writer.setIndentString("  ");
-        writer.write(cityModel);
-        writer.close();
+        if ( FORMAT.equals(CITYJSON) ) {
+            // Writing CityJSON
+            CityGMLContext ctx = CityGMLContext.getInstance();
+            CityJSONBuilder builder = ctx.createCityJSONBuilder();
+            CityJSONOutputFactory factory = builder.createCityJSONOutputFactory();
+
+            // simple file output
+            FileOutputStream fos = new FileOutputStream(path+"/"+filename+".json");
+            BufferedOutputStream bos = new BufferedOutputStream(fos);
+            CityJSONWriter writer = factory.createCityJSONWriter(bos);
+
+            // add metadata
+            MetadataType metadata = new MetadataType();
+            CRSType epsg4979 = new CRSType();
+            epsg4979.setEpsg(4979);
+            metadata.setCRS(epsg4979);
+            writer.setMetadata(metadata);
+
+            // write out the model
+            writer.write(cityModel);
+            writer.close();
+
+        } else {
+            // Writing CityGML
+            CityGMLContext ctx = CityGMLContext.getInstance();
+            CityGMLBuilder builder = ctx.createCityGMLBuilder(getClass().getClassLoader());
+            CityGMLOutputFactory factory = builder.createCityGMLOutputFactory(CityGMLVersion.DEFAULT);
+
+            // we want a Zip compressed output
+            FileOutputStream fos = new FileOutputStream(path+"/"+filename+".zip");
+            BufferedOutputStream bos = new BufferedOutputStream(fos);
+            ZipOutputStream zos = new ZipOutputStream(bos);
+            zos.putNextEntry(new ZipEntry(filename+".gml"));
+            CityGMLWriter writer = factory.createCityGMLWriter(zos, "UTF-8");
+
+            // write out the model
+            writer.setPrefixes(CityGMLVersion.DEFAULT);
+            writer.setSchemaLocations(CityGMLVersion.DEFAULT);
+            writer.setIndentString("  ");
+            writer.write(cityModel);
+            writer.close();
+        }
     }
 
 
@@ -141,26 +180,6 @@ public final class CitygmlBuilder {
     }
 
 
-    // We use this to do the coordinate system transformation before writing out the final Citygml
-//    private final String sourceCrs = "EPSG:4326";
-//    private final String targetCrs = "EPSG:3857";
-//    private final CoordinateOperation crsTransform = GeoUtil.getTransform(sourceCrs, targetCrs);
-//    private double[][] transformCoordinates(double[][] coords) {
-//        try {
-//            double[][] newCoords = new double[coords.length][];
-//            for (int i=0; i < coords.length; i++) {
-//                double[] coord = {coords[i][0], coords[i][1]};
-//                newCoords[i] = crsTransform.transform(coord);
-//            }
-//
-//            return newCoords;
-//
-//        } catch(Exception ex) {
-//            return coords;
-//        }
-//    }
-
-
     /** Create an LOD0 footprint surface **/
     private MultiSurfaceProperty createLOD0Footprint(Geometry geometry) {
         try {
@@ -180,6 +199,8 @@ public final class CitygmlBuilder {
 
     /** Create an LOD1 building solid **/
     private SolidProperty createLOD1Solid(Geometry geometry, double height) {
+        // height = height/111139.0;
+
         // extrude our footprint into a list of polygons making a 3D shape
         List<Polygon> surfaces = extrudeBuilding(geometry, height);
 
