@@ -15,6 +15,7 @@ import org.citygml4j.binding.cityjson.feature.MetadataType;
 import org.citygml4j.builder.cityjson.CityJSONBuilder;
 import org.citygml4j.builder.cityjson.json.io.writer.CityJSONOutputFactory;
 import org.citygml4j.builder.cityjson.json.io.writer.CityJSONWriter;
+import org.citygml4j.builder.cityjson.marshal.util.DefaultVerticesBuilder;
 import org.citygml4j.builder.jaxb.CityGMLBuilder;
 import org.citygml4j.factory.GMLGeometryFactory;
 import org.citygml4j.model.citygml.building.Building;
@@ -106,6 +107,7 @@ public final class CitygmlBuilder {
             CityGMLContext ctx = CityGMLContext.getInstance();
             CityJSONBuilder builder = ctx.createCityJSONBuilder();
             CityJSONOutputFactory factory = builder.createCityJSONOutputFactory();
+            factory.setVerticesBuilder(new DefaultVerticesBuilder().withSignificantDigits(6));
 
             // simple file output
             FileOutputStream fos = new FileOutputStream(path+"/"+filename+".json");
@@ -199,7 +201,8 @@ public final class CitygmlBuilder {
 
     /** Create an LOD1 building solid **/
     private SolidProperty createLOD1Solid(Geometry geometry, double height) {
-        // height = height/111139.0;
+        // this converts the height from meters to degrees (if you wanted to do that)
+        //height = height/111139.0;
 
         // extrude our footprint into a list of polygons making a 3D shape
         List<Polygon> surfaces = extrudeBuilding(geometry, height);
