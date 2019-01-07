@@ -14,7 +14,7 @@ public class CitygmlBuilderTest {
         Gson gson = new Gson();
         BuildingDef parsed = gson.fromJson(bldg, BuildingDef.class);
 
-        CitygmlBuilder builder = new CitygmlBuilder(1);
+        CitygmlBuilder builder = new CitygmlBuilder(CitygmlBuilder.LOD1, CitygmlBuilder.CITYGML);
         builder.addBuilding(parsed);
         builder.writeFile("/tmp/", "abcd");
 
