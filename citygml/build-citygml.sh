@@ -6,9 +6,6 @@ OCM_GMLFILES="./data/gml"
 
 # These environment variables are expected to be set which determine what data we
 # are working on and where to store the results when we are done.
-# OCM_MSFP_VERSION="usbuildings-v1-1"
-# OCM_MSFP_STATE="DistrictofColumbia"
-# OCM_S3BUCKET="buildzero-ocm-test"
 if [ -z ${OCM_COUNTY+x} ]; then
     echo "OCM_COUNTY is not set"
     exit 1
@@ -45,7 +42,7 @@ java -server -jar citygml.jar ${OCM_BLDGSFILES} ${OCM_GMLFILES} ${OUTFILE_PREFIX
 
 # push the citygml files back to S3
 if [ $? -eq 0 ]; then
-    aws s3 cp ${OCM_GMLFILES} s3://${OCM_GML_S3BUCKET}/${OCM_VERSION}/${OCM_STATE}/ --recursive
+    aws s3 cp ${OCM_GMLFILES} s3://${OCM_GML_S3BUCKET}/${OCM_VERSION}/${OCM_FORMAT}/${OCM_STATE}/${OCM_COUNTY}/ --recursive
 else
     exit 1
 fi
