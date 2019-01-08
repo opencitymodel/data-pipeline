@@ -93,6 +93,11 @@ public class Main {
     }
 
     public void writeCitygml() {
+        if (this.builder.getNumBuildings() == 0) {
+            System.out.println("No buildings found to write.");
+            return;
+        }
+
         try {
             String outfile = this.name + "-" + String.format("%03d", this.index);
             System.out.println(String.format("Writing %d buildings to file %s", this.builder.getNumBuildings(), outfile));
