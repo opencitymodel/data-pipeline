@@ -38,7 +38,7 @@ aws s3 cp s3://${OCM_BLDGS_S3BUCKET}/${OCM_VERSION}/${OCM_STATE}/cty=${OCM_COUNT
 
 # run our citygml builder
 OUTFILE_PREFIX="${OCM_STATE}-${OCM_COUNTY}"
-java -server -jar citygml.jar ${OCM_BLDGSFILES} ${OCM_GMLFILES} ${OUTFILE_PREFIX} ${OCM_FORMAT}
+java -server -XX:+PrintGCDetails -jar citygml.jar ${OCM_BLDGSFILES} ${OCM_GMLFILES} ${OUTFILE_PREFIX} ${OCM_FORMAT}
 
 # push the citygml files back to S3
 if [ $? -eq 0 ]; then
