@@ -3,7 +3,7 @@ DynamoDB = require("aws-sdk/clients/dynamodb");
 
 
 const NAME="citygml"
-const REVISION="7"
+const REVISION="8"
 const QUEUE="CitygmlJobs"
 const JOB_DEF=`${NAME}:${REVISION}`
 
@@ -116,7 +116,7 @@ async function submitAllJobs(version, formats, states, countyId) {
                 console.log("error with state job", err);
             }
 
-            try {
+            if (states.length > 1) try {
                 // take a break before submitting next state
                 await sleep(4);
             } catch(err) {
