@@ -135,6 +135,24 @@ function ubid(center, northeast, southwest) {
     return centroid_openlocationcode+"-"+delta_north+"-"+delta_east+"-"+delta_south+"-"+delta_west;
 }
 
+function pointInCounty(point, countyDef) {
+    // remember, some counties have multi-polygon shapes
+    const polygons = countyDef.geometry.coordinates;
+
+    if( polygons.length === 1 ) {
+        return pointInPolygon(point, polygons[0]);
+    } else {
+        // shapes with multiple polygons, so we need to test them all
+        // NOTE: in geojson a MultiPolygon has each member of its coordinates structured like a Polygon
+        let result = false;
+        for( let k=0; k < polygons.length && result === false; k++ ) {
+            const polygon = countyDef.geometry.type === "MultiPolygon" ? polygons[k][0] : polygons[k];
+            result = pointInPolygon(point, polygon);
+        }
+        return result;
+    }
+}
+
 
 function loadCountyShapes(args) {
     const countyShapes = {};
@@ -157,7 +175,7 @@ function loadCountyShapes(args) {
 
         // we only care about the counties for the state we are processing
         if (msfpStateName === args.state) {
-            countyShapes[countyDef.properties.GEOID] = countyDef.geometry.coordinates[0];
+            countyShapes[countyDef.properties.GEOID] = countyDef;
         }
     });
 
@@ -196,7 +214,6 @@ function processFootprints(args, countyShapes, mgrsToCountyMapping) {
         input: fs.createReadStream(args.inputFile, { encoding: "utf-8"})
     });
 
-    const missingCounty = {};
     let fpErrors = 0;
 
     stream.on("line", function(line) {
@@ -241,34 +258,24 @@ function processFootprints(args, countyShapes, mgrsToCountyMapping) {
             let countyId = null;
             const possibleCounties = mgrsToCountyMapping[mgrsGrid];
             if (possibleCounties && possibleCounties.length > 0) {
-                // if there is only 1 county for this grid then we are done
                 if (possibleCounties.length === 1) {
+                    // there is only 1 county for this grid so we are done
                     countyId = possibleCounties[0];
 
-                // otherwise, we need to use the county shape files to determine the county for this building
                 } else {
-                    countyId = _.find(possibleCounties, county => {
-                        return pointInPolygon([center.lon, center.lat], countyShapes[county])
-                    });
+                    // we need to use the county shape files to determine the county for this building
+                    countyId = _.find(possibleCounties, county => pointInCounty([center.lon, center.lat], countyShapes[county]));
                 }
+
             } else {
-                // TODO: if possibleCounties is non-existant then assume our prep job missed this grid and we need
-                //      to do the work right now
-                countyId = _.find(Object.keys(countyShapes), county => {
-                    return pointInPolygon([center.lon, center.lat], countyShapes[county])
-                });
+                // possibleCounties is non-existant so assume our prep job missed this grid
+                countyId = _.find(Object.keys(countyShapes), county => pointInCounty([center.lon, center.lat], countyShapes[county]));
 
                 if (countyId) {
                     console.log("MISSING_MATCHED", mgrsGrid, countyId, center.lat+","+center.lon);
                 } else {
                     console.log("NO_COUNTY", mgrsGrid, center.lat+","+center.lon);
                 }
-
-                if (!missingCounty[mgrsGrid]) {
-                    missingCounty[mgrsGrid] = [];
-                }
-
-                missingCounty[mgrsGrid].push(center);
             }
 
             // look for existing height property on footprint
@@ -298,12 +305,6 @@ function processFootprints(args, countyShapes, mgrsToCountyMapping) {
         if (fpErrors > 0) {
             console.log("Finished with", fpErrors, "errors");
         }
-
-        const g = Object.keys(missingCounty).sort();
-        g.forEach(grid => {
-            console.log(grid, missingCounty[grid].length);
-        });
-        console.log(g.length);
     });
 }
 
