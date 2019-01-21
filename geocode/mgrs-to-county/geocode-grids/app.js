@@ -164,7 +164,7 @@ function processState(stateDef, countyDefs) {
 }
 
 
-const MOVEMENT = 0.001;
+const MOVEMENT = 0.0001;  // this equates to moving roughly 36ft
 function findGrids(bbox) {
     const grids = new Set();
 
