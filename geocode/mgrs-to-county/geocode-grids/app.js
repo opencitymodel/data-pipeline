@@ -150,8 +150,8 @@ function processState(countyDefs) {
             console.log(`    added=${added}  (${bboxTime}s)`);
         });
 
-        const countyTime = Math.round((new Date().getTime()-countyStart.getTime())/60000);
-        console.log(`  ${countyDef.properties.NAME} completed in ${countyTime}m`);
+        const countyTime = Math.round((new Date().getTime()-countyStart.getTime())/1000);
+        console.log(`  ${countyDef.properties.NAME} county completed in ${countyTime}s`);
     });
 
     // write valid grids out into a file
