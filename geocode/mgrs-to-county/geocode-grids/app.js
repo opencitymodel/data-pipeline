@@ -67,14 +67,17 @@ function loadCounties() {
 
     stream.on("close", () => {
         console.log("finished loading counties shapefile", counties.length);
-        loadStates(counties);
+
+        // pull out just the state we are working on
+        const countiesByState = _.groupBy(counties, 'msfp');
+
+        // here we go
+        processState(countiesByState[STATE]);
     });
 }
 
 function loadStates(counties) {
-    // pull out just the state we are working on
-    const countiesByState = _.groupBy(counties, 'msfp');
-    counties = countiesByState[STATE];
+
 
     fs.readFile(STATE_SHAPES_FILE, "utf8", function(err, data) {
         // read in state shapes
@@ -93,61 +96,62 @@ function loadStates(counties) {
 }
 
 // build a mapping of MGRS grid -> [county, county, ...] for a given state
-function processState(stateDef, countyDefs) {
+function processState(countyDefs) {
     const started = new Date();
     console.log("Starting "+STATE+" @", started);
 
-    // get a list of all shapes which make up the state
-    const bboxes = getBoxes(stateDef);
-
     const grids = {};
 
-    // iterate over each shape and compute its mgrs grids
-    bboxes.forEach(bbox => {
-        console.log("bbox", "("+bbox.minLng+","+bbox.minLat+","+bbox.maxLng+","+bbox.maxLat+")");
+    // iterate over each county in the state
+    countyDefs.forEach(countyDef => {
+        const countyStart = new Date();
+        console.log(`County = ${countyDef.properties.NAME}`);
 
-        // determine all of the possible MGRS grids within our bounding box
-        const possibleGrids = findGrids(bbox);
-        const findGridsTime = (new Date().getTime()-started.getTime())/60000;
-        console.log(`  found=${possibleGrids.size} in ${findGridsTime}m`);
+        // some counties have multiple polygons, so go through them 1-by-1
+        const countyPolygons = getCountyPolygons(countyDef);
+        countyPolygons.forEach(countyPolygon => {
+            const polygonStart = new Date();
 
-        // iterate over the possible grids and test them, first for within state then for which county(s)
-        let tested = 0;
-        let added = 0;
-        possibleGrids.forEach(grid => {
-            if (!grids[grid]) {
-                tested++;
+            // determine the bounding box of our polygon
+            const bbox = geolib.getBounds(countyPolygon.map(p => {
+                return { longitude: p[0], latitude: p[1] }
+            }));
+            console.log("  bbox", "("+bbox.minLng+","+bbox.minLat+","+bbox.maxLng+","+bbox.maxLat+")");
 
-                const gridDef = {};
+            // determine all of the possible MGRS grids within our bounding box
+            const possibleGrids = findGrids(bbox);
+            const findGridsTime = Math.round((new Date().getTime()-polygonStart.getTime())/1000);
+            console.log(`    found=${possibleGrids.size}  (${findGridsTime}s)`);
 
-                // NOTE: regardless of whether this grid is within the state shape we want to add it to our grids so that
-                //       we don't attempt to process this same grid again during our iteration
-                grids[grid] = gridDef;
-
-                // if this grid is within our designated state then try to map which counties it overlaps
-                if (isGridInShape(grid, stateDef)) {
-                    added++;
-
-                    gridDef.mgrs = grid;
-                    gridDef.counties = [];
-
-                    // iterate over our counties and determine which ones overlap this grid
-                    for(let idx = 0; idx < countyDefs.length; idx++) {
-                        const county = countyDefs[idx];
-                        if (isGridInShape(grid, county)) {
-                            gridDef.counties.push(county.properties.GEOID);
-                        }
-                    }
-
-                    if (gridDef.counties.length === 0) {
-                        // presumably this should never happen where a grid doesn't seem to lie within any county
-                        console.log("NO_COUNTIES", grid, nwLat+","+nwLon)
-                    }
+            // we are testing a specific county polygon, so set that up
+            const countyPolygonShape = {
+                geometry: {
+                    type: "Polygon",
+                    coordinates: [countyPolygon]
                 }
-            }
+            };
+
+            // iterate over the possible grids and test if they fall within the polygon
+            let added = 0;
+            possibleGrids.forEach(grid => {
+                const gridDef = grids[grid] || { mgrs: grid, counties: [] };
+
+                // test that the grid falls within the polygon
+                if (isGridInShape(grid, countyPolygonShape)) {
+                    added++;
+                    gridDef.counties.push(countyDef.properties.GEOID);
+
+                    // make sure we assign the updated grid
+                    grids[grid] = gridDef;
+                }
+            });
+
+            const bboxTime = Math.round((new Date().getTime()-polygonStart.getTime())/1000);
+            console.log(`    added=${added}  (${bboxTime}s)`);
         });
 
-        console.log(`  tested=${tested}, added=${added}`)
+        const countyTime = Math.round((new Date().getTime()-countyStart.getTime())/60000);
+        console.log(`  ${countyDef.properties.NAME} completed in ${countyTime}m`);
     });
 
     // write valid grids out into a file
@@ -162,7 +166,8 @@ function processState(stateDef, countyDefs) {
     outstream.end();
 
     const finished = new Date();
-    console.log("Finished "+STATE+" @", finished, "("+(finished.getTime()-started.getTime())/60000+")");
+    const stateFinished = Math.round((finished.getTime()-started.getTime())/60000);
+    console.log("Finished "+STATE+" @", finished, "("+stateFinished+"m)");
 }
 
 
@@ -172,11 +177,11 @@ function findGrids(bbox) {
     const grids = new Set();
 
     // these are the termination points of the bbox, which we pad a little
-    const bboxMinLon = bbox.maxLng + 0.2;
-    const bboxMinLat = bbox.minLat - 0.2;
+    const bboxMinLon = bbox.maxLng + 0.05;
+    const bboxMinLat = bbox.minLat - 0.05;
 
-    let lat = bbox.maxLat + 0.2;
-    let lon = bbox.minLng - 0.2;
+    let lat = bbox.maxLat + 0.05;
+    let lon = bbox.minLng - 0.05;
     while (lat > bboxMinLat) {
         while (lon < bboxMinLon) {
             const grid = mgrs.forward([lon, lat], 2);
@@ -188,7 +193,7 @@ function findGrids(bbox) {
         }
 
         // reset lon and move lat south
-        lon = bbox.minLng - 0.2;
+        lon = bbox.minLng - 0.05;
         lat = lat - MOVEMENT;
     }
 
@@ -196,20 +201,14 @@ function findGrids(bbox) {
 }
 
 
-// enumerate the bounding boxes for each shape making up a state
-function getBoxes(stateDef) {
-    // NOTE: we are only considering the outer line ring since that's all we need
-    if (stateDef.geometry.type === "Polygon") {
-        return [geolib.getBounds(stateDef.geometry.coordinates[0].map(p => {
-            return { longitude: p[0], latitude: p[1] }
-        }))];
+// enumerate the bounding boxes for each shape
+function getCountyPolygons(countyDef) {
+    // NOTE: we are only considering the outer line-ring of each polygon since that's all we need
+    if (countyDef.geometry.type === "Polygon") {
+        return [countyDef.geometry.coordinates[0]];
 
-    } else if (stateDef.geometry.type === "MultiPolygon") {
-        return stateDef.geometry.coordinates.map(polygon => {
-            return geolib.getBounds(polygon[0].map(p => {
-                return { longitude: p[0], latitude: p[1] }
-            }));
-        });
+    } else if (countyDef.geometry.type === "MultiPolygon") {
+        return countyDef.geometry.coordinates.map(polygon => polygon[0]);
     }
 }
 
