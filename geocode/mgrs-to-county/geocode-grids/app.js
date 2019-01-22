@@ -5,7 +5,8 @@ pointInGeopolygon = require('point-in-geopolygon');
 pointInPolygon = require('point-in-polygon');
 proj4 = require('proj4');
 readline = require('readline');
-turf = require('@turf/turf')
+turf = require('@turf/turf');
+turfIntersect = require('@turf/intersect').default;
 _ = require('underscore');
 
 stateCodes = require('./state-codes')
@@ -107,7 +108,8 @@ function processState(stateDef, countyDefs) {
 
         // determine all of the possible MGRS grids within our bounding box
         const possibleGrids = findGrids(bbox);
-        console.log(`  found=${possibleGrids.size}`);
+        const findGridsTime = (new Date().getTime()-started.getTime())/60000;
+        console.log(`  found=${possibleGrids.size} in ${findGridsTime}m`);
 
         // iterate over the possible grids and test them, first for within state then for which county(s)
         let tested = 0;
@@ -164,6 +166,7 @@ function processState(stateDef, countyDefs) {
 }
 
 
+// find all of the 1km MGRS grids within a given bounding box
 const MOVEMENT = 0.0001;  // this equates to moving roughly 36ft
 function findGrids(bbox) {
     const grids = new Set();
@@ -193,17 +196,17 @@ function findGrids(bbox) {
 }
 
 
+// enumerate the bounding boxes for each shape making up a state
 function getBoxes(stateDef) {
-    if (stateDef.geometry.coordinates.length === 1) {
+    // NOTE: we are only considering the outer line ring since that's all we need
+    if (stateDef.geometry.type === "Polygon") {
         return [geolib.getBounds(stateDef.geometry.coordinates[0].map(p => {
             return { longitude: p[0], latitude: p[1] }
         }))];
 
-    } else {
+    } else if (stateDef.geometry.type === "MultiPolygon") {
         return stateDef.geometry.coordinates.map(polygon => {
-            if(stateDef.geometry.type === "MultiPolygon") polygon = polygon[0];
-
-            return geolib.getBounds(polygon.map(p => {
+            return geolib.getBounds(polygon[0].map(p => {
                 return { longitude: p[0], latitude: p[1] }
             }));
         });
@@ -211,8 +214,8 @@ function getBoxes(stateDef) {
 }
 
 
+// Test if a given MGRS grid lies within (any part) of a given county shape
 function isGridInShape(grid, shape) {
-    const polygons = shape.geometry.coordinates;
 
     try {
         const pt = mgrs.inverse(grid);
@@ -222,63 +225,25 @@ function isGridInShape(grid, shape) {
         const minLon = pt[2];
         const maxLat = pt[3];
 
-        // check if any of the 4 corners of the grid are within the shape
-        // Hmmm.  It seems possible that we could miss counties because the shape of a county could enter and leave
-        //        a grid on one of its edges without ever overlapping one of the corners.  May be better to change
-        //        this to do a line intersection check instead of a point in polygon check, that way we effectively
-        //        test all points along each edge of the grid.
-        let result = false;
-        let idx = 0;
-        const points = [
-            [maxLon, maxLat],
-            [minLon, maxLat],
-            [maxLon, minLat],
-            [minLon, minLat]
-        ];
+        // NOTE: first and last vertex must be equivalent to be a closed polygon and we need to start on the left most vertex
+        const mgrsPolygon = turf.polygon([[[minLon, maxLat], [maxLon, maxLat], [maxLon, minLat], [minLon, minLat], [minLon, maxLat]]]);
 
-        while( result === false && idx < points.length) {
-            if( polygons.length === 1 ) {
-                result = pointInPolygon(points[idx], polygons[0]);
-            } else {
-                // some shapes have multiple polygons, so we need to test them all
-                // NOTE: in geojson a MultiPolygon has each member of its coordinates structured like a Polygon
-                for( let k=0; k < polygons.length && result === false; k++ ) {
-                    const polygon = shape.geometry.type === "MultiPolygon" ? polygons[k][0] : polygons[k];
-                    result = pointInPolygon(points[idx], polygon);
-                }
+        if ( shape.geometry.type === "Polygon") {
+            const countyPolygon = turf.polygon(shape.geometry.coordinates);
+            if (turfIntersect(mgrsPolygon, countyPolygon)) return true;
+
+        } else if ( shape.geometry.type === "MultiPolygon" ) {
+            // test each polygon
+            for( let i=0; i < shape.geometry.coordinates.length; i++ ) {
+                const countyPolygon = turf.polygon(shape.geometry.coordinates[i]);
+                if (turfIntersect(mgrsPolygon, countyPolygon)) return true;
             }
-
-            idx++;
         }
 
-        // just check if any of the 4 sides of the grid interset the shape
-        // if (result === false) {
-        //     idx = 0;
-        //     const sides = [
-        //         turf.lineString([[maxLon, maxLat], [maxLon, minLat]]),
-        //         turf.lineString([[maxLon, minLat], [minLon, minLat]]),
-        //         turf.lineString([[minLon, minLat], [minLon, maxLat]]),
-        //         turf.lineString([[minLon, maxLat], [maxLon, maxLat]])
-        //     ];
-        //     const polygon = turf.polygon([shape]);
-        //     // ICK!  This is missing grids because it's possible that a very small portion of a county line pokes
-        //     //       into a given grid somewhere along one of the edges but all 4 corners are NOT in the county
-        //     // probably better if we can check if line intersects shape for all 4 sides of the grid
-        //     while( result === false && idx < sides.length) {
-        //         const intersection = turf.lineIntersect(sides[idx], polygon);
-        //         // console.log(intersection);
-        //         if (intersection && intersection.features.length > 0) {
-        //             result = true;
-        //         }
-
-        //         idx++;
-        //     }
-        // }
-
-        return result;
+        return false;
 
     } catch (err) {
-        console.log("error testing grid", grid);
+        console.log("error testing grid", grid, err);
         return false;
     }
 }
