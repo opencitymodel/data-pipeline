@@ -14,29 +14,21 @@ stateCodes = require('./state-codes')
 
 // we must have a file for us to process
 if (process.argv.length < 3) {
-    console.log("error: no county shapefile specified");
-    console.log("usage: node app.js <state-shapefile> <county-shapefile> <msfp-state>");
-    return;
-}
-
-// we must have a file for us to process
-if (process.argv.length < 4) {
     console.log("error: no state shapefile specified");
     console.log("usage: node app.js <state-shapefile> <county-shapefile> <msfp-state>");
     return;
 }
 
 // we must have a file for us to process
-if (process.argv.length < 5) {
-    console.log("error: no state specified to process");
+if (process.argv.length < 4) {
+    console.log("error: no state specified");
     console.log("usage: node app.js <state-shapefile> <county-shapefile> <msfp-state>");
     return;
 }
 
 
-const STATE_SHAPES_FILE = process.argv[2];
-const COUNTY_SHAPES_FILE = process.argv[3];
-const STATE = process.argv[4];
+const COUNTY_SHAPES_FILE = process.argv[2];
+const STATE = process.argv[3];
 
 const OUTPUT_FILE = "./"+STATE+"-mgrs-to-counties.txt";
 
@@ -73,25 +65,6 @@ function loadCounties() {
 
         // here we go
         processState(countiesByState[STATE]);
-    });
-}
-
-function loadStates(counties) {
-
-
-    fs.readFile(STATE_SHAPES_FILE, "utf8", function(err, data) {
-        // read in state shapes
-        const stateDefs = JSON.parse(data);
-        console.log("finished loading states shapefile", stateDefs.features.length);
-
-        stateDefs.features.forEach(stateDef => {
-            const msfpStateName = stateDef.properties.NAME.replace(/ /g, "");
-            stateDef.msfp = msfpStateName;
-
-            if (msfpStateName === STATE) {
-                processState(stateDef, counties);
-            }
-        })
     });
 }
 
@@ -132,6 +105,7 @@ function processState(countyDefs) {
             };
 
             // iterate over the possible grids and test if they fall within the polygon
+            const gridTestStart = new Date();
             let added = 0;
             possibleGrids.forEach(grid => {
                 const gridDef = grids[grid] || { mgrs: grid, counties: [] };
@@ -146,7 +120,7 @@ function processState(countyDefs) {
                 }
             });
 
-            const bboxTime = Math.round((new Date().getTime()-polygonStart.getTime())/1000);
+            const bboxTime = Math.round((new Date().getTime()-gridTestStart.getTime())/1000);
             console.log(`    added=${added}  (${bboxTime}s)`);
         });
 

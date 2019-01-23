@@ -6,5 +6,5 @@ declare -a states=("Alabama" "Alaska" "Arizona" "Arkansas" "California" "Colorad
 # move through county numbers (2 at a time) until we hit max
 for state in "${states[@]}"
 do
-   node ./geocode-grids/app.js ~/workspace/opencitymodel/data/geocode/state.geo.json ~/workspace/opencitymodel/data/geocode/county.geo.txt ${state}
+   ./submit-mgrs-job.sh ${state}
 done
