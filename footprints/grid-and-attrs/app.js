@@ -69,15 +69,14 @@ function writeFootprint(state, mgrsGrid, outdir, building) {
     const match = MGRS_REGEX.exec(mgrsGrid);
     const gzd = match[1];
     const gsid = match[2];
-    const outpath = state+"/"+gzd+"/"+gsid;
 
     // make sure our folder path exists, otherwise we can't open up the actual files
-    mkdirp(outdir+"/"+outpath, function(err) {
+    mkdirp(outdir+"/"+state, function(err) {
         if(err) {
             console.log("error creating directory", outdir+"/"+outpath, err);
         } else {
             // TODO: this could probably be more efficient
-            fs.appendFile(outdir+"/"+outpath+"/"+mgrsGrid+".txt", JSON.stringify(building)+"\n", function (err) {
+            fs.appendFile(`${outdir}/${state}/${gzd}${gsid}.txt`, JSON.stringify(building)+"\n", function (err) {
                 if (err) console.log("error writing to", mgrsGrid, err);
             });
         }
@@ -136,6 +135,25 @@ function ubid(center, northeast, southwest) {
 }
 
 
+// test if a given point falls within the shape of a county
+// NOTE: we only test if the point is inside the outer linear-ring of each polygon, so we don't account for holes in polygons
+function pointInCounty(point, countyDef) {
+    if( countyDef.geometry.type === "Polygon" && countyDef.geometry.coordinates.length > 0 ) {
+        return pointInPolygon(point, countyDef.geometry.coordinates[0]);
+
+    } else if (countyDef.geometry.type === "MultiPolygon") {
+        // shapes with multiple polygons, so we need to test them all
+        // NOTE: in geojson a MultiPolygon has each member of its coordinates structured like a Polygon
+        for( let k=0; k < countyDef.geometry.coordinates.length; k++ ) {
+            const polygon = countyDef.geometry.coordinates[k];
+            if (pointInPolygon(point, polygon[0])) return true;
+        }
+    }
+
+    return false;
+}
+
+
 function loadCountyShapes(args) {
     const countyShapes = {};
 
@@ -157,7 +175,7 @@ function loadCountyShapes(args) {
 
         // we only care about the counties for the state we are processing
         if (msfpStateName === args.state) {
-            countyShapes[countyDef.properties.GEOID] = countyDef.geometry.coordinates[0];
+            countyShapes[countyDef.properties.GEOID] = countyDef;
         }
     });
 
@@ -191,14 +209,15 @@ function loadMgrsToCountyMapping(args, countyShapes) {
 }
 
 function processFootprints(args, countyShapes, mgrsToCountyMapping) {
+    const started = new Date();
+    console.log("Starting "+args.state+" @", started);
+
     // open up our input file and start reading line by line
     const stream = readline.createInterface({
         input: fs.createReadStream(args.inputFile, { encoding: "utf-8"})
     });
 
-    const missingCounty = {};
     let fpErrors = 0;
-
     stream.on("line", function(line) {
         try {
             if (line.endsWith(",")) {
@@ -248,14 +267,14 @@ function processFootprints(args, countyShapes, mgrsToCountyMapping) {
                 // otherwise, we need to use the county shape files to determine the county for this building
                 } else {
                     countyId = _.find(possibleCounties, county => {
-                        return pointInPolygon([center.lon, center.lat], countyShapes[county])
+                        return pointInCounty([center.lon, center.lat], countyShapes[county])
                     });
                 }
             } else {
                 // TODO: if possibleCounties is non-existant then assume our prep job missed this grid and we need
                 //      to do the work right now
                 countyId = _.find(Object.keys(countyShapes), county => {
-                    return pointInPolygon([center.lon, center.lat], countyShapes[county])
+                    return pointInCounty([center.lon, center.lat], countyShapes[county])
                 });
 
                 if (countyId) {
@@ -263,12 +282,6 @@ function processFootprints(args, countyShapes, mgrsToCountyMapping) {
                 } else {
                     console.log("NO_COUNTY", mgrsGrid, center.lat+","+center.lon);
                 }
-
-                if (!missingCounty[mgrsGrid]) {
-                    missingCounty[mgrsGrid] = [];
-                }
-
-                missingCounty[mgrsGrid].push(center);
             }
 
             // look for existing height property on footprint
@@ -299,11 +312,8 @@ function processFootprints(args, countyShapes, mgrsToCountyMapping) {
             console.log("Finished with", fpErrors, "errors");
         }
 
-        const g = Object.keys(missingCounty).sort();
-        g.forEach(grid => {
-            console.log(grid, missingCounty[grid].length);
-        });
-        console.log(g.length);
+        const finished = new Date();
+        console.log("Finished "+args.state+" @", finished, "("+Math.round((finished.getTime()-started.getTime())/60000)+"m)");
     });
 }
 
