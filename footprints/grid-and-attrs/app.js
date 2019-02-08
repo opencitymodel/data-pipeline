@@ -1,4 +1,5 @@
 byline = require('byline');
+eachCons = require('each-cons');
 fs = require('fs');
 geolib = require('geolib');
 mkdirp = require('mkdirp');
@@ -12,6 +13,7 @@ _ = require('underscore');
 yargs = require('yargs');
 
 stateCodes = require('./state-codes');
+repair = require('./lib/repair');
 
 
 // This script takes in a file of GeoJSON features (1 per line) and calculates a
@@ -236,14 +238,45 @@ function processFootprints(args, countyShapes, mgrsToCountyMapping) {
         input: fs.createReadStream(args.inputFile, { encoding: "utf-8"})
     });
 
+    let total = 0;
     let fpErrors = 0;
+    let multiPolygons = 0;
+    let badPolygons = 0;
+    let repairedPolygons = 0;
     stream.on("line", function(line) {
         try {
+            total++;
+
             if (line.endsWith(",")) {
                 line = line.substring(0, line.length - 1);
             }
 
             const footprint = JSON.parse(line);
+
+            // we don't support actual MultiPolygon shapes, so either bail or convert to Polygon if we can
+            if (footprint.geometry.type === "MultiPolygon") {
+                if (footprint.geometry.coordinates.length > 1) {
+                    multiPolygons++;
+                    console.log("UNSUPPORTED_MULTIPOLYGON", line);
+                    return;
+
+                } else {
+                    // convert to Polygon given this isn't really a MultiPolygon
+                    footprint.geometry.type = "Polygon";
+                    footprint.geometry.coordinates = footprint.geometry.coordinates[0];
+                }
+            }
+
+            // validate and repair geometry if needed
+            try {
+                const origGeometry = footprint.geometry;
+                footprint.geometry = repair.repairGeometry(footprint.geometry);
+                if (origGeometry != footprint.geometry) repairedPolygons++;
+            } catch(geomError) {
+                console.log("GEOMETRY_ERROR", geomError);
+                badPolygons++;
+                return;
+            }
 
             // hash the geometry coordinates into a unique signature for the building
             const hashStr = footprint.geometry.coordinates[0].reduce(function (acc, val) {
@@ -290,8 +323,7 @@ function processFootprints(args, countyShapes, mgrsToCountyMapping) {
                 }
 
             } else {
-                // TODO: if possibleCounties is non-existant then assume our prep job missed this grid and we need
-                //      to do the work right now
+                // if possibleCounties is non-existant then we missed this grid and we need to figure it out right now
                 countyId = _.find(Object.keys(countyShapes), county => {
                     return pointInCounty([center.lon, center.lat], countyShapes[county])
                 });
@@ -327,9 +359,11 @@ function processFootprints(args, countyShapes, mgrsToCountyMapping) {
     });
 
     stream.on("close", () => {
-        if (fpErrors > 0) {
-            console.log("Finished with", fpErrors, "errors");
-        }
+        console.log("GENERAL_ERRORS", fpErrors);
+        console.log("MULTI_POLYGONS", multiPolygons);
+        console.log("BAD_POLYGONS", badPolygons);
+        console.log("REPAIRED_POLYGONS", repairedPolygons);
+        console.log("TOTAL_BUILDINGS", total);
 
         const finished = new Date();
         console.log("Finished "+args.state+" @", finished, "("+Math.round((finished.getTime()-started.getTime())/60000)+"m)");
