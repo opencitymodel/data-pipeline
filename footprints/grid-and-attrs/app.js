@@ -13,7 +13,7 @@ _ = require('underscore');
 yargs = require('yargs');
 
 stateCodes = require('./state-codes');
-repair = require('./lib/repair');
+repair = require('./repair');
 
 
 // This script takes in a file of GeoJSON features (1 per line) and calculates a
