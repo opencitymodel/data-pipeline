@@ -74,13 +74,16 @@ function writeFootprint(state, mgrsGrid, outdir, building) {
     const zone10k = match[3].substring(0, 1) + match[3].substring(2, 3);
 
     // make sure our folder path exists, otherwise we can't open up the actual files
+    // NOTE: throwing errors here will terminate the whole execution, which is fine because
+    //       it's clearly a serious issue if we can't safely write our data safely
     mkdirp(outdir+"/"+state, function(err) {
         if(err) {
-            console.log("error creating directory", outdir+"/"+outpath, err);
+            throw (`error creating directory ${outdir}/${state}: ${err}`);
+
         } else {
             // TODO: this could probably be more efficient
             fs.appendFile(`${outdir}/${state}/${gzd}${gsid}${zone10k}.txt`, JSON.stringify(building)+"\n", function (err) {
-                if (err) console.log("error writing to", mgrsGrid, err);
+                if (err) throw(`error writing to ${mgrsGrid}: ${err}`);
             });
         }
     });
