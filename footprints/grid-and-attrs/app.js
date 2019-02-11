@@ -140,24 +140,6 @@ function ubid(center, northeast, southwest) {
     return centroid_openlocationcode+"-"+delta_north+"-"+delta_east+"-"+delta_south+"-"+delta_west;
 }
 
-function pointInCounty(point, countyDef) {
-    // remember, some counties have multi-polygon shapes
-    const polygons = countyDef.geometry.coordinates;
-
-    if( polygons.length === 1 ) {
-        return pointInPolygon(point, polygons[0]);
-    } else {
-        // shapes with multiple polygons, so we need to test them all
-        // NOTE: in geojson a MultiPolygon has each member of its coordinates structured like a Polygon
-        let result = false;
-        for( let k=0; k < polygons.length && result === false; k++ ) {
-            const polygon = countyDef.geometry.type === "MultiPolygon" ? polygons[k][0] : polygons[k];
-            result = pointInPolygon(point, polygon);
-        }
-        return result;
-    }
-}
-
 
 // test if a given point falls within the shape of a county
 // NOTE: we only test if the point is inside the outer linear-ring of each polygon, so we don't account for holes in polygons
