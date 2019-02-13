@@ -65,7 +65,8 @@
             <id>boundless</id>
             <name>Boundless</name>
             <url>http://repo.boundlessgeo.com/main</url>
-        </repository></repositories>
+        </repository>
+    </repositories>
 
     <dependencies>
         <dependency>
@@ -83,6 +84,11 @@
             <groupId>org.orbisgis</groupId>
             <artifactId>cts</artifactId>
             <version>1.5.1</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-lang3</artifactId>
+            <version>3.8.1</version>
         </dependency>
     </dependencies>
 
