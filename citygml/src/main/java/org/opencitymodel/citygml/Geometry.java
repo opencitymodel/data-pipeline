@@ -2,6 +2,19 @@ package org.opencitymodel.citygml;
 
 
 public class Geometry {
+
+    private String type;
+    private double[][][] coordinates;
+
+
+    public Geometry () {}
+
+    public Geometry (String t, double[][][] c) {
+        type = t;
+        coordinates = c;
+    }
+
+
     public String getType() {
         return type;
     }
@@ -17,7 +30,4 @@ public class Geometry {
     public void setCoordinates(double[][][] coordinates) {
         this.coordinates = coordinates;
     }
-
-    private String type;
-    private double[][][] coordinates;
 }
