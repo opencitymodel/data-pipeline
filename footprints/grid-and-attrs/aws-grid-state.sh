@@ -39,8 +39,19 @@ aws s3 cp "s3://${OCM_DATASOURCE_S3BUCKET}/" ${OCM_RAWFILES}/ --recursive --excl
 aws s3 cp s3://${OCM_GEOCODE_S3BUCKET}/county.geo.txt ${OCM_GEOCODEFILES}/
 aws s3 cp s3://${OCM_GEOCODE_S3BUCKET}/${OCM_STATE}-mgrs-to-counties.txt ${OCM_GEOCODEFILES}/
 
+# quick check of disk space for logging
+df -h /
+
 # calculate attributes and reorg the footprints into MGRS grids
 ./grid-state.sh ${OCM_RAWFILES}/${OCM_DATASOURCE} ${OCM_GRIDFILES} ${OCM_GEOCODEFILES} ${OCM_STATE}
+RESULT=$?
+
+# quick check of disk space for logging
+df -h /
 
 # push the grid of files up to S3
-aws s3 cp ${OCM_GRIDFILES} s3://${OCM_GRID_S3BUCKET}/${OCM_DATASOURCE}/ --recursive
+if [ $RESULT -eq 0 ]; then
+    aws s3 cp ${OCM_GRIDFILES} s3://${OCM_GRID_S3BUCKET}/${OCM_DATASOURCE}/ --recursive
+else
+    exit 1
+fi

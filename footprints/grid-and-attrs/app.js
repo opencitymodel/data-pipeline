@@ -13,7 +13,7 @@ _ = require('underscore');
 yargs = require('yargs');
 
 stateCodes = require('./state-codes');
-repair = require('./lib/repair');
+repair = require('./repair');
 
 
 // This script takes in a file of GeoJSON features (1 per line) and calculates a
@@ -71,16 +71,19 @@ function writeFootprint(state, mgrsGrid, outdir, building) {
     const match = MGRS_REGEX.exec(mgrsGrid);
     const gzd = match[1];
     const gsid = match[2];
-    const zone10k = match[3].substring(0, 1) + match[3].substring(2, 3);
+    // const zone10k = match[3].substring(0, 1) + match[3].substring(2, 3);
 
     // make sure our folder path exists, otherwise we can't open up the actual files
+    // NOTE: throwing errors here will terminate the whole execution, which is fine because
+    //       it's clearly a serious issue if we can't safely write our data safely
     mkdirp(outdir+"/"+state, function(err) {
         if(err) {
-            console.log("error creating directory", outdir+"/"+outpath, err);
+            throw (`error creating directory ${outdir}/${state}: ${err}`);
+
         } else {
             // TODO: this could probably be more efficient
-            fs.appendFile(`${outdir}/${state}/${gzd}${gsid}${zone10k}.txt`, JSON.stringify(building)+"\n", function (err) {
-                if (err) console.log("error writing to", mgrsGrid, err);
+            fs.appendFile(`${outdir}/${state}/${gzd}${gsid}.txt`, JSON.stringify(building)+"\n", function (err) {
+                if (err) throw(`error writing to ${mgrsGrid}: ${err}`);
             });
         }
     });
@@ -135,24 +138,6 @@ function ubid(center, northeast, southwest) {
 
     // Construct and return the UBID code.
     return centroid_openlocationcode+"-"+delta_north+"-"+delta_east+"-"+delta_south+"-"+delta_west;
-}
-
-function pointInCounty(point, countyDef) {
-    // remember, some counties have multi-polygon shapes
-    const polygons = countyDef.geometry.coordinates;
-
-    if( polygons.length === 1 ) {
-        return pointInPolygon(point, polygons[0]);
-    } else {
-        // shapes with multiple polygons, so we need to test them all
-        // NOTE: in geojson a MultiPolygon has each member of its coordinates structured like a Polygon
-        let result = false;
-        for( let k=0; k < polygons.length && result === false; k++ ) {
-            const polygon = countyDef.geometry.type === "MultiPolygon" ? polygons[k][0] : polygons[k];
-            result = pointInPolygon(point, polygon);
-        }
-        return result;
-    }
 }
 
 
