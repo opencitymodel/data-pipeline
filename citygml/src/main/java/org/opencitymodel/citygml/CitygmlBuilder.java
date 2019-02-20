@@ -51,6 +51,9 @@ public final class CitygmlBuilder {
     // The data format we are writing.  CityGML or CityJSON
     private final String FORMAT;
 
+    // This is really only for debugging purposes
+    private final boolean CONVERT_HEIGHT_TO_DEGREES;
+
 
     // The buildings we've collected for inclusion in our file
     private final List<BuildingDef> buildings = new ArrayList<>();
@@ -58,9 +61,10 @@ public final class CitygmlBuilder {
     private final GMLGeometryFactory geom = new GMLGeometryFactory();
 
 
-    public CitygmlBuilder(int lod, String format) {
+    public CitygmlBuilder(int lod, String format, boolean heightToDegrees) {
         this.LOD = lod;
         this.FORMAT = format;
+        this.CONVERT_HEIGHT_TO_DEGREES = heightToDegrees;
     }
 
 
@@ -71,6 +75,8 @@ public final class CitygmlBuilder {
     public String getFormat() {
         return this.FORMAT;
     }
+
+    public boolean getHeightToDegrees() { return this.CONVERT_HEIGHT_TO_DEGREES; }
 
     public void addBuilding(BuildingDef bldg) {
         buildings.add(bldg);
@@ -201,7 +207,9 @@ public final class CitygmlBuilder {
     /** Create an LOD1 building solid **/
     private SolidProperty createLOD1Solid(Geometry geometry, double height) {
         // this converts the height from meters to degrees (if you wanted to do that)
-        //height = height/111139.0;
+        if (CONVERT_HEIGHT_TO_DEGREES) {
+            height = height / 111139.0;
+        }
 
         // extrude our footprint into a list of polygons making a 3D shape
         List<Polygon> surfaces = FootprintExtruder.extrudeBuilding(geometry, height);
