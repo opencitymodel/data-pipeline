@@ -23,7 +23,8 @@ public class Main {
         int lod = CitygmlBuilder.LOD1;
         String format = fmt == null ? CitygmlBuilder.CITYGML : fmt;
 
-        Main main = new Main(outdir, outfile, lod, format, 40000);
+        boolean heightToDegrees = System.getenv("HEIGHT_TO_DEGREES") != null;
+        Main main = new Main(outdir, outfile, lod, format, 40000, heightToDegrees);
 
         // glob through files and try to process the relevant ones
         File file = new File(indir);
@@ -59,10 +60,10 @@ public class Main {
     private CitygmlBuilder builder;
 
 
-    public Main(String path, String name, int lod, String format, int maxBuildings) {
+    public Main(String path, String name, int lod, String format, int maxBuildings, boolean heightToDegrees) {
         this.path = path;
         this.name = name;
-        this.builder = new CitygmlBuilder(lod, format);
+        this.builder = new CitygmlBuilder(lod, format, heightToDegrees);
         this.MAX_BUILDINGS = maxBuildings;
     }
 
@@ -103,7 +104,7 @@ public class Main {
             System.out.println(String.format("Writing %d buildings to file %s", this.builder.getNumBuildings(), outfile));
             this.builder.writeFile(this.path, outfile);
             // upload it to s3, delete it
-            this.builder = new CitygmlBuilder(this.builder.getLod(), this.builder.getFormat());
+            this.builder = new CitygmlBuilder(this.builder.getLod(), this.builder.getFormat(), this.builder.getHeightToDegrees());
             this.index++;
         } catch(Exception ex) {
             ex.printStackTrace();
