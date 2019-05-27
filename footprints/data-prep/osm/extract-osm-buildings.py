@@ -4,6 +4,14 @@ import sys
 
 geojson = osmium.geom.GeoJSONFactory()
 
+def is_number(s):
+    """ Returns True if string is a number."""
+    try:
+        float(s)
+        return True
+    except ValueError:
+        return False
+
 class BuildingHandler(osmium.SimpleHandler):
     def __init__(self):
         osmium.SimpleHandler.__init__(self)
@@ -21,7 +29,7 @@ class BuildingHandler(osmium.SimpleHandler):
                 }
 
                 # look for height
-                if 'height' in area.tags:
+                if 'height' in area.tags and is_number(area.tags['height']):
                     feature['properties']['height'] = area.tags['height']
 
                 self.bldgs.add(json.dumps(feature))
