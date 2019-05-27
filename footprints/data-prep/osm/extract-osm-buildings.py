@@ -43,9 +43,10 @@ if __name__ == '__main__':
 
     h = BuildingHandler()
 
+    # this will process the OSM file and build a list of the footprints
     h.apply_file(filename, locations=True)
 
-    # we need to remove ways which are part of a relation
+    # write out the footprints to a new file
     f = open(f"{state}.txt","w+")
     for bldg in h.bldgs:
         f.write(f'{bldg}\n')
