@@ -2,7 +2,7 @@
 
 # Simple script which wraps the AWS cmd line tool and is meant for submitting a job to aws batch
 NAME="osm-export"
-REVISION="1"
+REVISION="2"
 QUEUE="ETLJobs"
 
 STATE=$1
