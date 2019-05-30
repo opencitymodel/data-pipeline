@@ -18,6 +18,7 @@ class BuildingHandler(osmium.SimpleHandler):
         self.bldgs = set()
 
     def area(self, area):
+        # TODO: be a bit more selective so we reduce things that aren't truly buildings
         if 'building' in area.tags and not area.is_multipolygon():
             try:
                 geometry = geojson.create_multipolygon(area)
@@ -30,7 +31,11 @@ class BuildingHandler(osmium.SimpleHandler):
 
                 # look for height
                 if 'height' in area.tags and is_number(area.tags['height']):
-                    feature['properties']['height'] = area.tags['height']
+                    osm_height = round(float(area.tags['height']), 2)
+
+                    # NOTE: we assume a height greater than 3k meters is bunk
+                    if osm_height > 0 and osm_height < 3000:
+                        feature['properties']['height'] = osm_height
 
                 self.bldgs.add(json.dumps(feature))
             except:
