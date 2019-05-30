@@ -150,57 +150,59 @@ function pointInCounty (point, countyDef) {
   return false
 }
 
-function loadCountyShapes (args) {
-  const countyShapes = {}
+async function loadCountyShapes (shapesFile, state) {
+  return new Promise((resolve, reject) => {
+    const countyShapes = {}
 
-  // open up our input file and start reading line by line
-  const stream = readline.createInterface({
-    input: fs.createReadStream(args.countyShapes, { encoding: 'utf-8' })
-  })
+    // open up our input file and start reading line by line
+    const stream = readline.createInterface({
+      input: fs.createReadStream(shapesFile, { encoding: 'utf-8' })
+    })
 
-  stream.on('line', function (line) {
-    if (line.endsWith(',')) {
-      line = line.substring(0, line.length - 1)
-    }
-    const countyDef = JSON.parse(line)
+    stream.on('line', function (line) {
+      if (line.endsWith(',')) {
+        line = line.substring(0, line.length - 1)
+      }
+      const countyDef = JSON.parse(line)
 
-    // extract a couple things
-    const stateCode = countyDef.properties.STATEFP
-    const stateName = stateCodes[stateCode].name
-    const msfpStateName = stateName.replace(/ /g, '')
+      // extract a couple things
+      const stateCode = countyDef.properties.STATEFP
+      const stateName = stateCodes[stateCode].name
+      const msfpStateName = stateName.replace(/ /g, '')
 
-    // we only care about the counties for the state we are processing
-    if (msfpStateName === args.state) {
-      countyShapes[countyDef.properties.GEOID] = countyDef
-    }
-  })
+      // we only care about the counties for the state we are processing
+      if (msfpStateName === state) {
+        countyShapes[countyDef.properties.GEOID] = countyDef
+      }
+    })
 
-  stream.on('close', () => {
-    console.log('finished loading county shapes')
+    stream.on('close', () => {
+      console.log('finished loading county shapes')
 
-    // next load the mgrs->county mapping
-    loadMgrsToCountyMapping(args, countyShapes)
+      resolve(countyShapes)
+    })
   })
 }
 
-function loadMgrsToCountyMapping (args, countyShapes) {
-  const mgrsToCountyMapping = {}
+async function loadMgrsToCountyMapping (mgrsToCountyFile) {
+  return new Promise((resolve, reject) => {
+    const mgrsToCountyMapping = {}
 
-  // open up our input file and start reading line by line
-  const stream = readline.createInterface({
-    input: fs.createReadStream(args.mgrsToCountyFile, { encoding: 'utf-8' })
-  })
+    // open up our input file and start reading line by line
+    const stream = readline.createInterface({
+      input: fs.createReadStream(mgrsToCountyFile, { encoding: 'utf-8' })
+    })
 
-  stream.on('line', function (line) {
-    const mapping = JSON.parse(line)
-    mgrsToCountyMapping[mapping.mgrs] = mapping.counties
-  })
+    stream.on('line', function (line) {
+      const mapping = JSON.parse(line)
+      mgrsToCountyMapping[mapping.mgrs] = mapping.counties
+    })
 
-  stream.on('close', () => {
-    console.log('finished loading mgrs->county mapping')
+    stream.on('close', () => {
+      console.log('finished loading mgrs->county mapping')
 
-    // now its time to process the building footprints
-    processFootprints(args, countyShapes, mgrsToCountyMapping)
+      resolve(mgrsToCountyMapping)
+    })
   })
 }
 
@@ -344,5 +346,13 @@ function processFootprints (args, countyShapes, mgrsToCountyMapping) {
   })
 }
 
+async function doWork (args) {
+  const countyShapes = await loadCountyShapes(args.countyShapes, args.state)
+
+  const countyGeocodeIndex = await loadMgrsToCountyMapping(args.mgrsToCountyFile)
+
+  processFootprints(args, countyShapes, countyGeocodeIndex)
+}
+
 // this kicks things off and runs through everything
-loadCountyShapes(appArgs)
+doWork(appArgs)
