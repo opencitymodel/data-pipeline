@@ -10,7 +10,7 @@ const repair = require('./repair')
 
 // taken from https://stackoverflow.com/questions/6122571/simple-non-secure-hash-function-for-javascript
 // should be good enough when coupled together with the MGRS grid
-function quickHash (str) {
+function quickHash (str, grid) {
   var quickHashVal = 0
   if (str.length === 0) {
     return quickHashVal
@@ -20,7 +20,12 @@ function quickHash (str) {
     quickHashVal = ((quickHashVal << 5) - quickHashVal) + char
     quickHashVal = quickHashVal & quickHashVal // Convert to 32bit integer
   }
-  return quickHashVal
+
+  // lastly lets base64 encode so we get a string
+  const base64 = Buffer.from(`${grid}:${quickHashVal}`).toString('base64')
+
+  // remove base64 padding because we only want alphanumeric values
+  return base64.replace(/=/g, '')
 }
 
 // adapted from the encode() function here https://github.com/pnnl/buildingid/blob/master/buildingid/v3.py#L90
@@ -80,7 +85,7 @@ module.exports.processFootprint = (footprint, state, countyShapes, mgrsToCountyM
   // we don't support actual MultiPolygon shapes, so either bail or convert to Polygon if we can
   if (footprint.geometry.type === 'MultiPolygon') {
     if (footprint.geometry.coordinates.length > 1) {
-      throw new Error('UNSUPPORTED_MULTIPOLYGON')
+      throw new Error('MULTIPOLYGON')
     } else {
       // convert to Polygon given this isn't really a MultiPolygon
       footprint.geometry.type = 'Polygon'
@@ -90,18 +95,10 @@ module.exports.processFootprint = (footprint, state, countyShapes, mgrsToCountyM
 
   // validate and repair geometry if needed
   try {
-    // const origGeometry = footprint.geometry
     footprint.geometry = repair.repairGeometry(footprint.geometry)
-    // if (origGeometry !== footprint.geometry) repairedPolygons++
   } catch (geomError) {
     throw new Error('GEOMETRY_ERROR', geomError)
   }
-
-  // hash the geometry coordinates into a unique signature for the building
-  const hashStr = footprint.geometry.coordinates[0].reduce(function (acc, val) {
-    return acc + val
-  }, '')
-  const signature = quickHash(hashStr)
 
   // calculate centroid
   const ctr = geolib.getCenter(footprint.geometry.coordinates[0].map(p => {
@@ -121,6 +118,12 @@ module.exports.processFootprint = (footprint, state, countyShapes, mgrsToCountyM
 
   // calculate MGRS grid @ 1km resolution
   const mgrsGrid = mgrs.forward([center.lon, center.lat], 2)
+
+  // hash the geometry coordinates into a unique value for the building
+  const hashStr = footprint.geometry.coordinates[0].reduce(function (acc, val) {
+    return acc + val
+  }, '')
+  const hash = quickHash(hashStr, mgrsGrid)
 
   // calculate UBID for the footprint
   const bboxNortheast = { latitude: bbox.maxLat, longitude: bbox.maxLng }
@@ -159,7 +162,7 @@ module.exports.processFootprint = (footprint, state, countyShapes, mgrsToCountyM
   }, {})
 
   footprint.properties = _.extend(props, {
-    sig: signature,
+    hash,
     ubid: bid,
     state,
     county: countyId,

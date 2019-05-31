@@ -2,11 +2,25 @@
 
 const fp = require('./footprint')
 
+const isAlphaNumeric = ch => {
+  return ch.match(/^[a-z0-9]+$/i) !== null
+}
+
 test('adds area property', () => {
   const json = '{"type":"Feature","geometry":{"type":"Polygon","coordinates":[[[-77.014904,38.816248],[-77.014842,38.816395],[-77.015056,38.816449],[-77.015117,38.816302],[-77.014904,38.816248]]]},"properties":{}}'
   const processed = fp.processFootprint(JSON.parse(json), 'DistrictofColumbia', {}, {})
 
   expect(processed.properties.area).toBeCloseTo(335.09419006265676)
+})
+
+test('adds hash property', () => {
+  const json = '{"type":"Feature","geometry":{"type":"Polygon","coordinates":[[[-77.014904,38.816248],[-77.014842,38.816395],[-77.015056,38.816449],[-77.015117,38.816302],[-77.014904,38.816248]]]},"properties":{}}'
+  const processed = fp.processFootprint(JSON.parse(json), 'DistrictofColumbia', {}, {})
+
+  expect(processed.properties.hash).toEqual('MThTVUgyNTk4OjYxNDk1Njg2OQ')
+
+  // we only want alphanumeric for the hash, so check that
+  expect(isAlphaNumeric(processed.properties.hash)).toBe(true)
 })
 
 test('adds UBID property', () => {
