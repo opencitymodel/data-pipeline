@@ -50,15 +50,9 @@ const appArgs = yargs
   .help()
   .argv
 
-// this breaks a 1km MGRS identifier into 3 parts
-const MGRS_REGEX = /([0-9A-Z]+)([A-Z]{2})([0-9]{4})/
-
-function writeFootprint (state, mgrsGrid, outdir, building) {
-  // break apart mgrs and create a path on the fs for <GZD>/<GZD><GSID>/<MGRS>.txt
-  const match = MGRS_REGEX.exec(mgrsGrid)
-  const gzd = match[1]
-  const gsid = match[2]
-  // const zone10k = match[3].substring(0, 1) + match[3].substring(2, 3);
+function writeFootprint (state, grid, outdir, building) {
+  // take just the first 4 characters of the PlusCode grid, which should provide a ~110km area
+  const zone = grid.substring(0, 4)
 
   // make sure our folder path exists, otherwise we can't open up the actual files
   // NOTE: throwing errors here will terminate the whole execution, which is fine because
@@ -67,9 +61,8 @@ function writeFootprint (state, mgrsGrid, outdir, building) {
     if (err) {
       throw new Error(`error creating directory ${outdir}/${state}: ${err}`)
     } else {
-      // TODO: this could probably be more efficient
-      fs.appendFile(`${outdir}/${state}/${gzd}${gsid}.txt`, JSON.stringify(building) + '\n', function (err) {
-        if (err) throw new Error(`error writing to ${mgrsGrid}: ${err}`)
+      fs.appendFile(`${outdir}/${state}/${zone}.txt`, JSON.stringify(building) + '\n', function (err) {
+        if (err) throw new Error(`error writing to ${grid}: ${err}`)
       })
     }
   })
@@ -131,7 +124,7 @@ async function loadMgrsToCountyMapping (mgrsToCountyFile) {
   })
 }
 
-function processFootprints (args, countyShapes, mgrsToCountyMapping) {
+function processFootprints (args, countyShapes, gridToCountyMapping) {
   const started = new Date()
   console.log('Starting ' + args.state + ' @', started)
 
@@ -154,10 +147,10 @@ function processFootprints (args, countyShapes, mgrsToCountyMapping) {
         line = line.substring(0, line.length - 1)
       }
 
-      const footprint = fp.processFootprint(JSON.parse(line), args.state, countyShapes, mgrsToCountyMapping)
+      const footprint = fp.processFootprint(JSON.parse(line), args.state, countyShapes, gridToCountyMapping)
 
       // add the footprint to output file
-      writeFootprint(args.state, footprint.properties.mgrs, args.outputFolder, footprint)
+      writeFootprint(args.state, footprint.properties.grid, args.outputFolder, footprint)
     } catch (error) {
       console.log('error processing footprint', error, line)
       fpErrors++

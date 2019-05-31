@@ -16,7 +16,6 @@ test('adds area property', () => {
 test('adds grid property', () => {
   const json = '{"type":"Feature","geometry":{"type":"Polygon","coordinates":[[[-77.014904,38.816248],[-77.014842,38.816395],[-77.015056,38.816449],[-77.015117,38.816302],[-77.014904,38.816248]]]},"properties":{}}'
   const processed = fp.processFootprint(JSON.parse(json), 'DistrictofColumbia', {}, {})
-  console.log(processed)
 
   expect(processed.properties.grid).toEqual('87C4RX8P+')
 
@@ -29,7 +28,7 @@ test('adds hash property', () => {
   const json = '{"type":"Feature","geometry":{"type":"Polygon","coordinates":[[[-77.014904,38.816248],[-77.014842,38.816395],[-77.015056,38.816449],[-77.015117,38.816302],[-77.014904,38.816248]]]},"properties":{}}'
   const processed = fp.processFootprint(JSON.parse(json), 'DistrictofColumbia', {}, {})
 
-  expect(processed.properties.hash).toEqual('MThTVUgyNTk4OjYxNDk1Njg2OQ')
+  expect(processed.properties.hash).toEqual('ODdDNFJYOFArOjYxNDk1Njg2OQ')
 
   // we only want alphanumeric for the hash, so check that
   expect(isAlphaNumeric(processed.properties.hash)).toBe(true)

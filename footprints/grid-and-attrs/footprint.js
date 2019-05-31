@@ -1,6 +1,5 @@
 const _ = require('underscore')
 const geolib = require('geolib')
-const mgrs = require('mgrs')
 const OpenLocationCode = require('open-location-code').OpenLocationCode
 const pointInPolygon = require('point-in-polygon')
 const turfArea = require('@turf/area')
@@ -116,9 +115,6 @@ module.exports.processFootprint = (footprint, state, countyShapes, mgrsToCountyM
   const turfPoly = turfHelpers.polygon(footprint.geometry.coordinates)
   const area = turfArea.default(turfPoly)
 
-  // calculate MGRS grid @ 1km resolution
-  const mgrsGrid = mgrs.forward([center.lon, center.lat], 2)
-
   // calculate Plus Code grid @ code length = 8 (roughly 275mx275m grid)
   const openloc = new OpenLocationCode()
   const grid = openloc.encode(center.lat, center.lon, 8)
@@ -127,7 +123,7 @@ module.exports.processFootprint = (footprint, state, countyShapes, mgrsToCountyM
   const hashStr = footprint.geometry.coordinates[0].reduce(function (acc, val) {
     return acc + val
   }, '')
-  const hash = quickHash(hashStr, mgrsGrid)
+  const hash = quickHash(hashStr, grid)
 
   // calculate UBID for the footprint
   const bboxNortheast = { latitude: bbox.maxLat, longitude: bbox.maxLng }
@@ -136,7 +132,7 @@ module.exports.processFootprint = (footprint, state, countyShapes, mgrsToCountyM
 
   // reverse geocode to determine county
   let countyId = null
-  const possibleCounties = mgrsToCountyMapping[mgrsGrid]
+  const possibleCounties = mgrsToCountyMapping[grid]
   if (possibleCounties && possibleCounties.length > 0) {
     if (possibleCounties.length === 1) {
       // there is only 1 county for this grid so we are done
@@ -153,9 +149,9 @@ module.exports.processFootprint = (footprint, state, countyShapes, mgrsToCountyM
     })
 
     if (countyId) {
-      console.log('MISSING_MATCHED', mgrsGrid, countyId, center.lat + ',' + center.lon)
+      console.log('MISSING_MATCHED', grid, countyId, center.lat + ',' + center.lon)
     } else {
-      console.log('NO_COUNTY', mgrsGrid, center.lat + ',' + center.lon)
+      console.log('NO_COUNTY', grid, center.lat + ',' + center.lon)
     }
   }
 
@@ -170,10 +166,10 @@ module.exports.processFootprint = (footprint, state, countyShapes, mgrsToCountyM
     ubid: bid,
     state,
     county: countyId,
+    grid,
     lat: center.lat,
     lon: center.lon,
-    area,
-    grid
+    area
   })
 
   return footprint
