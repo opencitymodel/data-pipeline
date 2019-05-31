@@ -106,3 +106,18 @@ test('lowercases custom footprint properties', () => {
   expect(processed.properties.Height).toBe(undefined)
   expect(processed.properties.other).toEqual('abc')
 })
+
+// geometry repair
+
+test('converts MultiPolygon to Polygon when possible', () => {
+  const processed = fp.processFootprint({
+    ...testFootprint,
+    geometry: {
+      'type': 'MultiPolygon',
+      'coordinates': [[[[-77.014904, 38.816248], [-77.014842, 38.816395], [-77.015056, 38.816449], [-77.015117, 38.816302], [-77.014904, 38.816248]]]]
+    }
+  }, 'TestState', {}, gridToCountyMapping)
+
+  expect(processed.geometry.type).toEqual('Polygon')
+  expect(processed.geometry.coordinates[0][0]).toEqual([-77.014904, 38.816248])
+})
