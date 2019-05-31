@@ -8,7 +8,7 @@ const turfHelpers = require('@turf/helpers')
 const repair = require('./repair')
 
 // taken from https://stackoverflow.com/questions/6122571/simple-non-secure-hash-function-for-javascript
-// should be good enough when coupled together with the MGRS grid
+// should be good enough when coupled together with the grid
 function quickHash (str, grid) {
   var quickHashVal = 0
   if (str.length === 0) {
@@ -83,7 +83,7 @@ function pointInCounty (point, countyDef) {
   return false
 }
 
-module.exports.processFootprint = (footprint, state, countyShapes, mgrsToCountyMapping) => {
+module.exports.processFootprint = (footprint, state, countyShapes, gridToCountyMapping) => {
   // we don't support actual MultiPolygon shapes, so either bail or convert to Polygon if we can
   if (footprint.geometry.type === 'MultiPolygon') {
     if (footprint.geometry.coordinates.length > 1) {
@@ -131,7 +131,7 @@ module.exports.processFootprint = (footprint, state, countyShapes, mgrsToCountyM
 
   // reverse geocode to determine county
   let countyId = null
-  const possibleCounties = mgrsToCountyMapping[grid]
+  const possibleCounties = gridToCountyMapping[grid]
   if (possibleCounties && possibleCounties.length > 0) {
     if (possibleCounties.length === 1) {
       // there is only 1 county for this grid so we are done

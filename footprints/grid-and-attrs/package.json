@@ -14,7 +14,6 @@
     "byline": "^5.0.0",
     "each-cons": "^1.0.0",
     "geolib": "^2.0.24",
-    "mgrs": "^1.0.0",
     "mkdirp": "^0.5.1",
     "open-location-code": "^1.0.3",
     "point-in-polygon": "^1.0.1",

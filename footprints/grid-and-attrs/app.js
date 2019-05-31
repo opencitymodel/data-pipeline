@@ -57,11 +57,11 @@ function writeFootprint (state, grid, outdir, building) {
   // make sure our folder path exists, otherwise we can't open up the actual files
   // NOTE: throwing errors here will terminate the whole execution, which is fine because
   //       it's clearly a serious issue if we can't safely write our data safely
-  mkdirp(outdir + '/' + state, function (err) {
+  mkdirp(`${outdir}/state=${state}`, function (err) {
     if (err) {
-      throw new Error(`error creating directory ${outdir}/${state}: ${err}`)
+      throw new Error(`error creating directory ${outdir}/state=${state}: ${err}`)
     } else {
-      fs.appendFile(`${outdir}/${state}/${zone}.txt`, JSON.stringify(building) + '\n', function (err) {
+      fs.appendFile(`${outdir}/state=${state}/${zone}.txt`, JSON.stringify(building) + '\n', function (err) {
         if (err) throw new Error(`error writing to ${grid}: ${err}`)
       })
     }
