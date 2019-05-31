@@ -28,8 +28,11 @@ function quickHash (str, grid) {
 }
 
 // adapted from the encode() function here https://github.com/pnnl/buildingid/blob/master/buildingid/v3.py#L90
-function ubid (center, northeast, southwest) {
+function encodeUbid (center, bbox) {
   const openloc = new OpenLocationCode()
+
+  const northeast = { latitude: bbox.maxLat, longitude: bbox.maxLng }
+  const southwest = { latitude: bbox.minLat, longitude: bbox.minLng }
 
   // Encode the OLCs for the northeast and southwest corners of the minimal
   // bounding box for the building footprint.
@@ -106,11 +109,6 @@ module.exports.processFootprint = (footprint, state, countyShapes, mgrsToCountyM
   // not sure why, but the centroid funtion is returning values as strings =(
   const center = { lat: parseFloat(ctr.latitude), lon: parseFloat(ctr.longitude) }
 
-  // calculate bounding box
-  const bbox = geolib.getBounds(footprint.geometry.coordinates[0].map(p => {
-    return { longitude: p[0], latitude: p[1] }
-  }))
-
   // calculate area
   const turfPoly = turfHelpers.polygon(footprint.geometry.coordinates)
   const area = turfArea.default(turfPoly)
@@ -126,9 +124,10 @@ module.exports.processFootprint = (footprint, state, countyShapes, mgrsToCountyM
   const hash = quickHash(hashStr, grid)
 
   // calculate UBID for the footprint
-  const bboxNortheast = { latitude: bbox.maxLat, longitude: bbox.maxLng }
-  const bboxSouthwest = { latitude: bbox.minLat, longitude: bbox.minLng }
-  const bid = ubid(center, bboxNortheast, bboxSouthwest)
+  const bbox = geolib.getBounds(footprint.geometry.coordinates[0].map(p => {
+    return { longitude: p[0], latitude: p[1] }
+  }))
+  const ubid = encodeUbid(center, bbox)
 
   // reverse geocode to determine county
   let countyId = null
@@ -155,15 +154,15 @@ module.exports.processFootprint = (footprint, state, countyShapes, mgrsToCountyM
     }
   }
 
-  // add all of our new properties, and rename all existing props to lowercase for consistency
+  // retain all of the footprint props but rename them to lowercase
   let props = Object.keys(footprint.properties).reduce((c, k) => {
-    c = c[k.toLowerCase()] = footprint.properties[k]
+    c[k.toLowerCase()] = footprint.properties[k]
     return c
   }, {})
 
   footprint.properties = _.extend(props, {
     hash,
-    ubid: bid,
+    ubid,
     state,
     county: countyId,
     grid,
