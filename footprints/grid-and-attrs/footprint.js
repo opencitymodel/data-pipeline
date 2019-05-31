@@ -119,6 +119,10 @@ module.exports.processFootprint = (footprint, state, countyShapes, mgrsToCountyM
   // calculate MGRS grid @ 1km resolution
   const mgrsGrid = mgrs.forward([center.lon, center.lat], 2)
 
+  // calculate Plus Code grid @ code length = 8 (roughly 275mx275m grid)
+  const openloc = new OpenLocationCode()
+  const grid = openloc.encode(center.lat, center.lon, 8)
+
   // hash the geometry coordinates into a unique value for the building
   const hashStr = footprint.geometry.coordinates[0].reduce(function (acc, val) {
     return acc + val
@@ -168,8 +172,8 @@ module.exports.processFootprint = (footprint, state, countyShapes, mgrsToCountyM
     county: countyId,
     lat: center.lat,
     lon: center.lon,
-    mgrs: mgrsGrid,
-    area
+    area,
+    grid
   })
 
   return footprint
