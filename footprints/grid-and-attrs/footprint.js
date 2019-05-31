@@ -56,7 +56,7 @@ function ubid (center, northeast, southwest) {
   const deltaWest = Math.round((centroidOpenlocationcodeCodeArea.longitudeLo - southwestOpenlocationcodeCodeArea.longitudeLo) / width)
 
   // Construct and return the UBID code.
-  return centroidOpenlocationcodeCodeArea + '-' + deltaNorth + '-' + deltaEast + '-' + deltaSouth + '-' + deltaWest
+  return centroidOpenlocationcode + '-' + deltaNorth + '-' + deltaEast + '-' + deltaSouth + '-' + deltaWest
 }
 
 // test if a given point falls within the shape of a county
