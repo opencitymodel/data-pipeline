@@ -11,7 +11,7 @@ const stateCodes = require('./state-codes')
 
 // this will parse our command line options
 const appArgs = yargs
-  .example('node $0 -s California -i ./California.txt -o ./data/grid -c ./California.geo.json -m California-mgrs-to-county.json')
+  .example('node $0 -s California -i ./California.txt -o ./data/grid -c ./California.geo.json -m California-grid-to-county.json')
   .option('input-file', {
     alias: 'i',
     demandOption: true,
@@ -40,10 +40,10 @@ const appArgs = yargs
     requiresArg: true,
     type: 'string'
   })
-  .option('mgrs-to-county-file', {
+  .option('grid-to-county-file', {
     alias: 'm',
     demandOption: true,
-    describe: 'mgrs-to-county mapping file',
+    describe: 'grid-to-county mapping file',
     requiresArg: true,
     type: 'string'
   })
@@ -102,24 +102,24 @@ async function loadCountyShapes (shapesFile, state) {
   })
 }
 
-async function loadMgrsToCountyMapping (mgrsToCountyFile) {
+async function loadGridToCountyMapping (gridToCountyFile) {
   return new Promise((resolve, reject) => {
-    const mgrsToCountyMapping = {}
+    const gridToCountyMapping = {}
 
     // open up our input file and start reading line by line
     const stream = readline.createInterface({
-      input: fs.createReadStream(mgrsToCountyFile, { encoding: 'utf-8' })
+      input: fs.createReadStream(gridToCountyFile, { encoding: 'utf-8' })
     })
 
     stream.on('line', function (line) {
       const mapping = JSON.parse(line)
-      mgrsToCountyMapping[mapping.mgrs] = mapping.counties
+      gridToCountyMapping[mapping.grid] = mapping.counties
     })
 
     stream.on('close', () => {
-      console.log('finished loading mgrs->county mapping')
+      console.log('finished loading grid->county mapping')
 
-      resolve(mgrsToCountyMapping)
+      resolve(gridToCountyMapping)
     })
   })
 }
@@ -172,7 +172,7 @@ function processFootprints (args, countyShapes, gridToCountyMapping) {
 async function doWork (args) {
   const countyShapes = await loadCountyShapes(args.countyShapes, args.state)
 
-  const countyGeocodeIndex = await loadMgrsToCountyMapping(args.mgrsToCountyFile)
+  const countyGeocodeIndex = await loadGridToCountyMapping(args.gridToCountyFile)
 
   processFootprints(args, countyShapes, countyGeocodeIndex)
 }
