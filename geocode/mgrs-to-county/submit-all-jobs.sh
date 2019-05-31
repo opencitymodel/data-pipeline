@@ -6,5 +6,5 @@ declare -a states=("Alabama" "Alaska" "Arizona" "Arkansas" "California" "Colorad
 # move through county numbers (2 at a time) until we hit max
 for state in "${states[@]}"
 do
-   ./submit-mgrs-job.sh ${state}
+   ./submit-mapping-job.sh ${state}
 done

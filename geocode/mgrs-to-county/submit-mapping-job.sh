@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Simple script which wraps the AWS cmd line tool and is meant for submitting a job to aws batch
-NAME="mgrs-to-county"
+NAME="grid-to-county"
 REVISION="3"
 QUEUE="GeocodeJobs"
 

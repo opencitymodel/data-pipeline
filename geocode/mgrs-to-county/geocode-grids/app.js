@@ -1,6 +1,6 @@
 fs = require('fs');
 geolib = require('geolib');
-mgrs = require('mgrs');
+const OpenLocationCode = require('open-location-code').OpenLocationCode
 pointInGeopolygon = require('point-in-geopolygon');
 pointInPolygon = require('point-in-polygon');
 proj4 = require('proj4');
@@ -30,7 +30,7 @@ if (process.argv.length < 4) {
 const COUNTY_SHAPES_FILE = process.argv[2];
 const STATE = process.argv[3];
 
-const OUTPUT_FILE = "./"+STATE+"-mgrs-to-counties.txt";
+const OUTPUT_FILE = "./"+STATE+"-grid-to-counties.txt";
 
 
 function loadCounties() {
@@ -68,7 +68,7 @@ function loadCounties() {
     });
 }
 
-// build a mapping of MGRS grid -> [county, county, ...] for a given state
+// build a mapping of PlusCode grid -> [county, county, ...] for a given state
 function processState(countyDefs) {
     const started = new Date();
     console.log("Starting "+STATE+" @", started);
@@ -91,7 +91,7 @@ function processState(countyDefs) {
             }));
             console.log("  bbox", "("+bbox.minLng+","+bbox.minLat+","+bbox.maxLng+","+bbox.maxLat+")");
 
-            // determine all of the possible MGRS grids within our bounding box
+            // determine all of the possible grids within our bounding box
             const possibleGrids = findGrids(bbox);
             const findGridsTime = Math.round((new Date().getTime()-polygonStart.getTime())/1000);
             console.log(`    found=${possibleGrids.size}  (${findGridsTime}s)`);
@@ -108,7 +108,7 @@ function processState(countyDefs) {
             const gridTestStart = new Date();
             let added = 0;
             possibleGrids.forEach(grid => {
-                const gridDef = grids[grid] || { mgrs: grid, counties: [] };
+                const gridDef = grids[grid] || { grid, counties: [] };
 
                 // test that the grid falls within the polygon
                 if (isGridInShape(grid, countyPolygonShape)) {
@@ -133,7 +133,7 @@ function processState(countyDefs) {
     Object.keys(grids).forEach(grid => {
         const gridDef = grids[grid];
 
-        if (gridDef.mgrs) {
+        if (gridDef.grid) {
             outstream.write(JSON.stringify(gridDef)+"\n", "utf8");
         }
     });
@@ -145,30 +145,31 @@ function processState(countyDefs) {
 }
 
 
-// find all of the 1km MGRS grids within a given bounding box
-const MOVEMENT = 0.0001;  // this equates to moving roughly 36ft
+// find all of the grids within a given bounding box
 function findGrids(bbox) {
     const grids = new Set();
 
     // these are the termination points of the bbox, which we pad a little
-    const bboxMinLon = bbox.maxLng + 0.05;
-    const bboxMinLat = bbox.minLat - 0.05;
+    const bboxMinLon = bbox.maxLng + 0.01;
+    const bboxMinLat = bbox.minLat - 0.01;
 
-    let lat = bbox.maxLat + 0.05;
-    let lon = bbox.minLng - 0.05;
+    let lat = bbox.maxLat + 0.01;
+    let lon = bbox.minLng - 0.01;
     while (lat > bboxMinLat) {
         while (lon < bboxMinLon) {
-            const grid = mgrs.forward([lon, lat], 2);
+            // use PlusCode(8) grids which are 0.0025 degrees long (~275m)
+            const openloc = new OpenLocationCode()
+            const grid = openloc.encode(lat, lon, 8);
 
             grids.add(grid);
 
             // move east
-            lon = lon + MOVEMENT;
+            lon = lon + 0.0025;
         }
 
         // reset lon and move lat south
-        lon = bbox.minLng - 0.05;
-        lat = lat - MOVEMENT;
+        lon = bbox.minLng - 0.01;
+        lat = lat - 0.0025;
     }
 
     return grids;
@@ -187,29 +188,30 @@ function getCountyPolygons(countyDef) {
 }
 
 
-// Test if a given MGRS grid lies within (any part) of a given county shape
+// Test if a given grid lies within (any part) of a given county shape
 function isGridInShape(grid, shape) {
 
     try {
-        const pt = mgrs.inverse(grid);
+        const openloc = new OpenLocationCode()
+        const pt = openloc.decode(grid);
 
-        const maxLon = pt[0];
-        const minLat = pt[1];
-        const minLon = pt[2];
-        const maxLat = pt[3];
+        const maxLon = pt.longitudeHi;
+        const minLat = pt.latitudeLo;
+        const minLon = pt.longitudeLo;
+        const maxLat = pt.latitudeHi;
 
         // NOTE: first and last vertex must be equivalent to be a closed polygon and we need to start on the left most vertex
-        const mgrsPolygon = turf.polygon([[[minLon, maxLat], [maxLon, maxLat], [maxLon, minLat], [minLon, minLat], [minLon, maxLat]]]);
+        const box = turf.polygon([[[minLon, maxLat], [maxLon, maxLat], [maxLon, minLat], [minLon, minLat], [minLon, maxLat]]]);
 
         if ( shape.geometry.type === "Polygon") {
             const countyPolygon = turf.polygon(shape.geometry.coordinates);
-            if (turfIntersect(mgrsPolygon, countyPolygon)) return true;
+            if (turfIntersect(box, countyPolygon)) return true;
 
         } else if ( shape.geometry.type === "MultiPolygon" ) {
             // test each polygon
             for( let i=0; i < shape.geometry.coordinates.length; i++ ) {
                 const countyPolygon = turf.polygon(shape.geometry.coordinates[i]);
-                if (turfIntersect(mgrsPolygon, countyPolygon)) return true;
+                if (turfIntersect(box, countyPolygon)) return true;
             }
         }
 
