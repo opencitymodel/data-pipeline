@@ -51,7 +51,7 @@ df -h /
 
 # push the grid of files up to S3
 if [ $RESULT -eq 0 ]; then
-    aws s3 cp ${OCM_GRIDFILES} s3://${OCM_GRID_S3BUCKET}/${OCM_DATASOURCE}/ --recursive
+    aws s3 cp ${OCM_GRIDFILES} s3://${OCM_GRID_S3BUCKET}/datasource=${OCM_DATASOURCE}/ --recursive
 else
     exit 1
 fi
