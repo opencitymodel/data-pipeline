@@ -137,7 +137,8 @@ function processFootprints (args, countyShapes, gridToCountyMapping) {
   let fpErrors = 0
   let multiPolygons = 0
   let badPolygons = 0
-  let repairedPolygons = 0
+  let noCounty = 0
+  let unknownErrors = 0
 
   stream.on('line', function (line) {
     try {
@@ -152,16 +153,27 @@ function processFootprints (args, countyShapes, gridToCountyMapping) {
       // add the footprint to output file
       writeFootprint(args.state, footprint.properties.grid, args.outputFolder, footprint)
     } catch (error) {
-      console.log('error processing footprint', error, line)
+      if (error.message === 'MULTIPOLYGON') {
+        multiPolygons++
+      } else if (error.message === 'GEOMETRY_ERROR') {
+        badPolygons++
+      } else if (error.message === 'NO_COUNTY') {
+        noCounty++
+      } else {
+        unknownErrors++
+        console.log('error processing footprint', error, line)
+      }
+
       fpErrors++
     }
   })
 
   stream.on('close', () => {
-    console.log('GENERAL_ERRORS', fpErrors)
+    console.log('UNKNOWN_ERRORS', unknownErrors)
     console.log('MULTI_POLYGONS', multiPolygons)
     console.log('BAD_POLYGONS', badPolygons)
-    console.log('REPAIRED_POLYGONS', repairedPolygons)
+    console.log('NO_COUNTY', noCounty)
+    console.log('ALL_ERRORS', fpErrors)
     console.log('TOTAL_BUILDINGS', total)
 
     const finished = new Date()

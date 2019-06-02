@@ -150,7 +150,8 @@ module.exports.processFootprint = (footprint, state, countyShapes, gridToCountyM
     if (countyId) {
       console.log('MISSING_MATCHED', grid, countyId, center.lat + ',' + center.lon)
     } else {
-      console.log('NO_COUNTY', grid, center.lat + ',' + center.lon)
+      throw new Error('NO_COUNTY')
+      // console.log('NO_COUNTY', grid, center.lat + ',' + center.lon)
     }
   }
 
