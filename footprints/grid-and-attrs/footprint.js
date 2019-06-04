@@ -130,8 +130,10 @@ module.exports.processFootprint = (footprint, state, countyShapes, gridToCountyM
   const ubid = encodeUbid(center, bbox)
 
   // reverse geocode to determine county
+  // NOTE: we use a larger openloc grid (codelength = 6) for the geocoding work
   let countyId = null
-  const possibleCounties = gridToCountyMapping[grid]
+  const geocodeGrid = openloc.encode(center.lat, center.lon, 6)
+  const possibleCounties = gridToCountyMapping[geocodeGrid]
   if (possibleCounties && possibleCounties.length > 0) {
     if (possibleCounties.length === 1) {
       // there is only 1 county for this grid so we are done
@@ -148,7 +150,7 @@ module.exports.processFootprint = (footprint, state, countyShapes, gridToCountyM
     })
 
     if (countyId) {
-      console.log('MISSING_MATCHED', grid, countyId, center.lat + ',' + center.lon)
+      console.log('MISSING_MATCHED', geocodeGrid, countyId, center.lat + ',' + center.lon)
     } else {
       throw new Error('NO_COUNTY')
       // console.log('NO_COUNTY', grid, center.lat + ',' + center.lon)

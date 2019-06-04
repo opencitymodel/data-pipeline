@@ -16,7 +16,7 @@ const testFootprint = {
 }
 
 const gridToCountyMapping = {
-  '87C4RX8P+': ['12345']
+  '87C4RX00+': ['12345']
 }
 
 test('adds hash property', () => {

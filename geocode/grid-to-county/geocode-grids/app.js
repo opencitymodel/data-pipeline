@@ -8,6 +8,10 @@ const turfIntersect = require('@turf/intersect').default
 
 const stateCodes = require('./state-codes')
 
+// we use PlusCodes w/ codelength = 6 for creating the grids
+const OPENLOC_GRID_CODELENGTH = 6
+const OPENLOC_GRID_LENGTH_DEGREES = 0.05 // approximately 5.5km
+
 // we must have a file for us to process
 if (process.argv.length < 3) {
   console.log('error: no state shapefile specified')
@@ -142,26 +146,28 @@ function findGrids (bbox) {
   const grids = new Set()
 
   // these are the termination points of the bbox, which we pad a little
-  const bboxMinLon = bbox.maxLng + 0.01
-  const bboxMinLat = bbox.minLat - 0.01
+  const bboxMinLon = bbox.maxLng + (OPENLOC_GRID_LENGTH_DEGREES * 3)
+  const bboxMinLat = bbox.minLat - (OPENLOC_GRID_LENGTH_DEGREES * 3)
 
-  let lat = bbox.maxLat + 0.01
-  let lon = bbox.minLng - 0.01
+  // move our pointer a third of a grid at a time to maximize coverage
+  const MOVEMENT = OPENLOC_GRID_LENGTH_DEGREES / 3
+
+  let lat = bbox.maxLat + OPENLOC_GRID_LENGTH_DEGREES
+  let lon = bbox.minLng - OPENLOC_GRID_LENGTH_DEGREES
   while (lat > bboxMinLat) {
     while (lon < bboxMinLon) {
-      // use PlusCode(8) grids which are 0.0025 degrees long (~275m)
       const openloc = new OpenLocationCode()
-      const grid = openloc.encode(lat, lon, 8)
+      const grid = openloc.encode(lat, lon, OPENLOC_GRID_CODELENGTH)
 
       grids.add(grid)
 
       // move east
-      lon = lon + 0.0025
+      lon = lon + MOVEMENT
     }
 
     // reset lon and move lat south
-    lon = bbox.minLng - 0.01
-    lat = lat - 0.0025
+    lon = bbox.minLng - OPENLOC_GRID_LENGTH_DEGREES
+    lat = lat - MOVEMENT
   }
 
   return grids
