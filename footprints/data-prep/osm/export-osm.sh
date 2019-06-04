@@ -6,7 +6,7 @@ if [ -z ${OCM_DATASOURCE+x} ]; then
     echo "OCM_DATASOURCE is not set"
     exit 1
 elif [ -z ${STATE+x} ]; then
-    echo "OCM_STATE is not set"
+    echo "STATE is not set"
     exit 1
 elif [ -z ${OCM_DATASOURCE_S3BUCKET+x} ]; then
     echo "OCM_DATASOURCE_S3BUCKET is not set"
