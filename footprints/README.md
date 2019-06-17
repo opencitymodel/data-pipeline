@@ -1,7 +1,7 @@
 # Footprints Processing
 
-1. **Data Preparation** - the files in the `data-prep` folder contain scripts which take raw data from various datasets and transforms them into a known and standardized format for further processing.  for the most part these scripts do things such as extract compressed files and then transform ESRI shapefiles into our GeoJSON based footprints format.
-2. **Grid and Attributes** - in this step we take files which have been properly prepared and we do a pass over each footprint in order to A) add a set of common attributes to the data such as `center`, `mgrs`, and `ubid`, and B) to group the footprints into smaller files based on the MGRS grid the footprint falls within.
+
+
 
 
 # Prepared Data Format
