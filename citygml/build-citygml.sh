@@ -34,7 +34,7 @@ mkdir -p ${OCM_BLDGSFILES}
 mkdir -p ${OCM_GMLFILES}
 
 # download the buildings data from S3 which we will be transforming into citygml
-aws s3 cp s3://${OCM_BLDGS_S3BUCKET}/${OCM_VERSION}/${OCM_STATE}/cty=${OCM_COUNTY} ${OCM_BLDGSFILES}/ --recursive
+aws s3 cp s3://${OCM_BLDGS_S3BUCKET}/version=${OCM_VERSION}/state=${OCM_STATE}/cty=${OCM_COUNTY} ${OCM_BLDGSFILES}/ --recursive
 
 # run our citygml builder
 OUTFILE_PREFIX="${OCM_STATE}-${OCM_COUNTY}"
