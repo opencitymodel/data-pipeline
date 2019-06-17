@@ -2,12 +2,12 @@ package org.opencitymodel.citygml;
 
 
 public class BuildingDef {
-    public String getId() {
-        return id;
+    public String getHash() {
+        return hash;
     }
 
-    public void setId(String id) {
-        this.id = id;
+    public void setHash(String hash) {
+        this.hash = hash;
     }
 
     public String getUbid() {
@@ -32,14 +32,6 @@ public class BuildingDef {
 
     public void setCounty(String county) {
         this.county = county;
-    }
-
-    public String getMgrs() {
-        return mgrs;
-    }
-
-    public void setMgrs(String mgrs) {
-        this.mgrs = mgrs;
     }
 
     public String getGrid() {
@@ -106,16 +98,14 @@ public class BuildingDef {
         this.geometry = geometry;
     }
 
-    private String id;
+    private String hash;
     private String ubid;
     private String state;
     private String county;
-    private String mgrs;
     private String grid;
     private double lat;
     private double lon;
     private double area;
-
     private double height;
     private String height_source;
     private String fp_source;

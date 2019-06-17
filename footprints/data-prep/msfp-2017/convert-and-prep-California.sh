@@ -23,10 +23,16 @@ do
     # Convert shapefile into GeoJSON
     SHAPE_RESTORE_SHX=YES ogr2ogr -f "GeoJSON" CaliArea.geo.json "${area}.shp"
 
-    # Parse out extra JSON so we have just a single polygon per line
-    grep '{ "type": "Feature", "properties": { "Height"' CaliArea.geo.json >> California.txt
-
     # Delete working files to save disk space
     rm -f "${area}".*
+
+    # Parse out extra JSON so we have just a single polygon per line
+    grep '{ "type": "Feature", "properties": { "Height"' CaliArea.geo.json > Cali-all.txt
+
     rm -f CaliArea.geo.json
+
+    # filter out the buildings with a null Height value, we are not going to use those for now
+    grep 'Height": [0-9].' Cali-all.txt >> California.txt
+
+    rm -f Cali-all.txt
 done

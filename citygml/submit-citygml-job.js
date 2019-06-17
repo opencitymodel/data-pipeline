@@ -3,7 +3,7 @@ DynamoDB = require("aws-sdk/clients/dynamodb");
 
 
 const NAME="citygml"
-const REVISION="8"
+const REVISION="9"
 const QUEUE="CitygmlJobs"
 const JOB_DEF=`${NAME}:${REVISION}`
 

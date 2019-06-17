@@ -1,0 +1,12 @@
+{
+  "name": "LARIAC4-2014",
+  "version": "0.1.0",
+  "description": "data transforms for LARIAC4 dataset",
+  "main": "transform.js",
+  "scripts": {},
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "proj4": "^2.5.0"
+  }
+}

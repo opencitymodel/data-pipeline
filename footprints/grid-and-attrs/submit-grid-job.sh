@@ -2,7 +2,7 @@
 
 # Simple script which wraps the AWS cmd line tool and is meant for submitting a job to aws batch
 NAME="grid-and-attrs"
-REVISION="2"
+REVISION="3"
 QUEUE="GridAndAttrsJobs"
 
 DATASOURCE=$1

@@ -155,7 +155,7 @@ public final class CitygmlBuilder {
 
     private Building createBuilding(BuildingDef bldg) {
         Building building = new Building();
-        building.setId(Base64.getEncoder().withoutPadding().encodeToString(bldg.getId().getBytes()));
+        building.setId(bldg.getHash());
 
         // construct the building surface (depends on LOD)
         if (this.LOD == LOD0) {
@@ -173,13 +173,15 @@ public final class CitygmlBuilder {
         building.setMeasuredHeight(measuredHeight);
 
         // add custom attributes
+        building.addGenericAttribute(new StringAttribute("hash", bldg.getHash()));
         building.addGenericAttribute(new StringAttribute("ubid", bldg.getUbid()));
         building.addGenericAttribute(new StringAttribute("state", bldg.getState()));
         building.addGenericAttribute(new StringAttribute("county", bldg.getCounty()));
+        building.addGenericAttribute(new StringAttribute("grid", bldg.getGrid()));
         building.addGenericAttribute(new DoubleAttribute("latitude", bldg.getLat()));
         building.addGenericAttribute(new DoubleAttribute("longitude", bldg.getLon()));
-        building.addGenericAttribute(new StringAttribute("mgrs", bldg.getMgrs()));
         building.addGenericAttribute(new DoubleAttribute("area", bldg.getArea()));
+        building.addGenericAttribute(new DoubleAttribute("height", bldg.getHeight()));
         building.addGenericAttribute(new StringAttribute("height_source", bldg.getHeight_source()));
         building.addGenericAttribute(new StringAttribute("fp_source", bldg.getFp_source()));
 
