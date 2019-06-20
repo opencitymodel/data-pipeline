@@ -4,11 +4,13 @@ This repository houses the various scripts and tools used produce the citygml & 
 
 # Pipeline Components
 
-1. **Data Preparation** - the files in the `data-prep` folder contain scripts which take raw data from various datasets and transforms them into a known and standardized format for further processing.  for the most part these scripts do things such as extract compressed files, transform ESRI shapefiles into our GeoJSON based footprints format, and unify units values and coordinate systems.
-2. **Grid and Attributes** - in this step we take files which have been properly prepared and we do a pass over each footprint in order to A) add a set of common properties to the data such as `area`, `grid`, `ubid`, and a unique `hash`, and B) to group the footprints into smaller files based on the grid the footprint falls within.  these files are all maintained in the `grid-and-attrs` folder and the output format is a single GeoJSON feature per line.
-3. **Footprint Reconciliation + Heights** - This component takes in all available footprint data and works to combine and resolve it down to a master set of building definitions.  We attempt to use known measured sources of data for building heights as much as possible but when that is not available we utilize machine learning models to estimate the height.  NOTE: Currently this step is taking place in AWS via databricks but we plan to add that code here once things are better developed.  results of this step are a flattened and simplified JSON structure with a single footprint per line.
-4. **CityGML / CityJSON** - The final component of the pipeline is to read in the building JSON files, extrude the buildings into 3D shapes, and write out the final details into the desired format.  Due to the size of citygml files we are producing the buildings by US County and capping them at roughly 40k buildings per file which tends to generate ~200MB files.
-5. **Geocode** - Code here is used to setup some basic reverse geocoding data so that we can do things such as determine the US county a given footprint falls within.
+- **citygml** - Reads in the building JSON files after `footprint-res`, extrudes the buildings into 3D shapes, and writes out the final details into the desired format.  Due to the size of citygml files we are partitioning the buildings by US County and capping them at roughly 40k buildings per file which tends to generate ~200MB files.
+
+- **data-prep** - Scripts which take raw data from various source datasets and transforms them into a known and standardized format for further processing.  for the most part these scripts do things such as extract compressed files, transform ESRI shapefiles into our GeoJSON based footprints format, unify units values, and transform coordinate systems.  The output format is a single GeoJSON feature per line.
+
+-  **footprint-res** - This component takes in all available footprint data and works to combine and resolve it down to a master set of building definitions.  We attempt to use known measured sources of data for building heights as much as possible but when that is not available we utilize machine learning models to estimate the height.  Output of this step are a flattened and simplified JSON structure with a single footprint per line.
+
+- **grid-and-attrs** - Takes files which have been properly prepared via `data-prep` and does a pass over each footprint in order to add a set of common properties to the data such as `area`, `grid`, `ubid`, `hash`, etc.  The output format is a single GeoJSON feature per line.
 
 # Prepared Data Format
 
